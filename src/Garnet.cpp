@@ -64,8 +64,9 @@ bool Garnet::Init(bool _printErrors)
     }
 
 #ifndef GNET_OS_WINDOWS
-    std::cout << "Garnet currently only supports Windows operating systems. Initialization failed.";
-    return;
+    err = "Initialization failed: Garnet currently only supports Windows operating systems.";
+    if (printErrors) std::cout << err << "\n";
+    return false;
 #endif
 
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
@@ -94,32 +95,32 @@ Garnet::Socket::Socket()
 {
     m_addr.IP = "";
     m_addr.port = 0;
-    m_prot = Protocol::Null;
+    m_proto = Protocol::Null;
     m_wsSocket = INVALID_SOCKET;
     m_wsAddr.sin_family = AF_INET;
     m_wsAddrSize = sizeof(m_wsAddr);
     m_open = false;
 }
 
-Garnet::Socket::Socket(Protocol prot, bool* result)
+Garnet::Socket::Socket(Protocol proto, bool* result)
 {
     m_addr.IP = "";
     m_addr.port = 0;
-    m_prot = prot;
+    m_proto = proto;
     m_wsSocket = INVALID_SOCKET;
     m_wsAddr.sin_family = AF_INET;
     m_wsAddrSize = sizeof(m_wsAddr);
 
     SOCKET wsSocketCopy = INVALID_SOCKET;
 
-    if (m_prot == Protocol::Null)
+    if (m_proto == Protocol::Null)
     {
         err = "Socket creation failed: protocol cannot be null";
         if (printErrors) std::cout << err << "\n";
         if (result != nullptr) *result = false;
         return;
     }
-    else if (m_prot == Protocol::TCP)
+    else if (m_proto == Protocol::TCP)
     {
         wsSocketCopy = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
         m_wsSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -131,7 +132,7 @@ Garnet::Socket::Socket(Protocol prot, bool* result)
             return;
         }
     }
-    else if (m_prot == Protocol::UDP)
+    else if (m_proto == Protocol::UDP)
     {
         wsSocketCopy = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
         m_wsSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -217,7 +218,7 @@ Garnet::Socket Garnet::Socket::accept(bool* result)
 
     retval.m_wsSocket = acceptSocket;
     retval.m_addr = addr_wtog(retval.m_wsAddr);
-    retval.m_prot = m_prot;
+    retval.m_proto = m_proto;
 
     if (result != nullptr) *result = true;
 
@@ -243,23 +244,27 @@ bool Garnet::Socket::send(void* data, int size)
     if (::send(m_wsSocket, (char*)data, size, 0) <= 0) return false;
     else return true;
 }
+
 void Garnet::Socket::receive(void* buffer, int bufferSize)
 {
     ::recv(m_wsSocket, (char*)buffer, bufferSize, 0);
 }
+
 bool Garnet::Socket::sendTo(void* data, int size, Address to)
 {
     SOCKADDR_IN wsTo = addr_gtow(to);
-    if (::sendto(m_wsSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo)) <= 0) return false;
+    if (::sendto(m_wsSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo)) == SOCKET_ERROR) return false;
     else return true;
 }
-void Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from)
+
+bool Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from)
 {
     SOCKADDR_IN wsFrom;
-    ::recvfrom(m_wsSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, nullptr);
-    *from = addr_wtog(wsFrom);
+    int wsFromSize = sizeof(wsFrom);
+    if (::recvfrom(m_wsSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, &wsFromSize) == SOCKET_ERROR) return false;
+    if (from != nullptr) *from = addr_wtog(wsFrom);
+    return true;
 }
-
 
 void Garnet::Socket::close()
 {
@@ -274,7 +279,7 @@ const Garnet::Address& Garnet::Socket::getAddress() const
 
 const Garnet::Protocol& Garnet::Socket::getProtocol() const
 {
-    return m_prot;
+    return m_proto;
 }
 
 bool Garnet::Socket::isOpen() const

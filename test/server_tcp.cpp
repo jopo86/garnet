@@ -4,9 +4,6 @@
 
 using namespace Garnet;
 
-SOCKADDR_IN addr_gtow(Garnet::Address addr);
-Garnet::Address addr_wtog(SOCKADDR_IN addr);
-
 int main()
 {
     std::cout << "SERVER\n\n";
@@ -20,7 +17,7 @@ int main()
     serverSocket.listen(1);
     std::cout << "Listening for connection...\n";
     Socket acceptSocket = serverSocket.accept();
-    std::cout << "Connected with a client\n\n";
+    std::cout << "Connected with client (IP: " << acceptSocket.getAddress().IP << ", port " << acceptSocket.getAddress().port << ")\n\n";
 
     std::cout << "CHAT STARTED ----- enter '!quit' to exit\n\n";
     char buffer[256];

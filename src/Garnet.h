@@ -5,7 +5,7 @@
 
 #define GNET_VERSION_MAJOR  0
 #define GNET_VERSION_MINOR  0
-#define GNET_VERSION_PATCH  0
+#define GNET_VERSION_PATCH  1
 
 #define GNET_DEV            true
 #define GNET_ALPHA          false
@@ -21,6 +21,8 @@
 #else
 #define GNET_OS_UNKNOWN
 #endif
+
+typedef unsigned short ushort;
 
 namespace Garnet
 {
@@ -42,7 +44,7 @@ namespace Garnet
     struct Address
     {
         std::string IP;
-        unsigned short port;
+        ushort port;
     };
 
     class Socket
@@ -59,7 +61,7 @@ namespace Garnet
         bool send(void* data, int size);
         void receive(void* buffer, int bufferSize);
         bool sendTo(void* data, int size, Address to);
-        void receiveFrom(void* buffer, int bufferSize, Address* from);
+        bool receiveFrom(void* buffer, int bufferSize, Address* from);
 
         void close();
 
@@ -69,7 +71,7 @@ namespace Garnet
 
     private:
         Address m_addr;
-        Protocol m_prot;
+        Protocol m_proto;
 
         SOCKET m_wsSocket;
         SOCKADDR_IN m_wsAddr;

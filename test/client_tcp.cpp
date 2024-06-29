@@ -8,18 +8,13 @@ int main()
 {
     std::cout << "CLIENT\n\n";
 
-    int port = 55555;
-
     Garnet::Init(true);
     Socket clientSocket(Protocol::TCP);
-    float start = time(nullptr);
     std::cout << "Connecting to server...\n";
     clientSocket.connect(Address{
         .IP = "127.0.0.1", // these should be the same as server address
         .port = 55555
     });
-    float end = time(nullptr);
-    std::cout << "Connected to server in " + std::to_string(end - start) + "s\n\n";
 
     std::cout << "CHAT STARTED ----- enter '!quit' to exit\n\n";
     char buffer[256];
