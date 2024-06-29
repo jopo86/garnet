@@ -1,4 +1,6 @@
 #include <string>
+#include <unordered_map>
+#include <thread>
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -51,17 +53,17 @@ namespace Garnet
     {
     public:
         Socket();
-        Socket(Protocol protocol, bool* result = nullptr);
+        Socket(Protocol protocol, bool* success = nullptr);
 
-        bool bind(Address serverAddress);
-        bool listen(int maxClients);
-        Socket accept(bool* result = nullptr);
-        bool connect(Address serverAddress);
+        void bind(Address serverAddress, bool* success = nullptr);
+        void listen(int maxClients, bool* success = nullptr);
+        Socket accept(bool* success = nullptr);
+        void connect(Address serverAddress, bool* success = nullptr);
 
-        bool send(void* data, int size);
-        void receive(void* buffer, int bufferSize);
-        bool sendTo(void* data, int size, Address to);
-        bool receiveFrom(void* buffer, int bufferSize, Address* from);
+        int send(void* data, int size, bool* success = nullptr);
+        int receive(void* buffer, int bufferSize);
+        int sendTo(void* data, int size, Address to, bool* success = nullptr);
+        int receiveFrom(void* buffer, int bufferSize, Address* from, bool* success = nullptr);
 
         void close();
 
@@ -78,5 +80,68 @@ namespace Garnet
         int m_wsAddrSize;
 
         bool m_open;
+    };
+
+    class ServerTCP
+    {
+    public:
+        ServerTCP();
+        ServerTCP(Address serverAddress, bool* success = nullptr);
+
+        void open(int maxClients, int bufferSize = 256, bool* success = nullptr);
+        void send(int clientIndex, bool* success = nullptr);
+        void send(Address clientAddress, bool* success = nullptr);
+        void close(bool* success = nullptr);
+        
+        bool isOpen() const;
+
+    private:
+        Address m_addr;
+        Socket m_socket;
+
+        std::atomic<int> m_bufSize;
+
+        std::atomic<int> m_nClients;
+        std::unordered_map<int, Socket> m_clientIdxs;
+        std::unordered_map<Address, Socket> m_clients;
+
+        std::atomic<bool> m_open;
+
+        void accept(); // accept() and add to maps while true until error (from closure)
+        void receive(Socket& acceptedSocket, int clientIdx); // receive() and callback while true until error (from closure)
+        std::thread m_accepting;
+        std::vector<std::thread> m_receivings;
+
+
+        void (*m_pReceiveCallbackIdx)(void* buffer, int bufferSize, int actualSize, int clientIndex);
+        void (*m_pReceiveCallbackAddr)(void* buffer, int bufferSize, int actualSize, Address from);
+    };
+
+    class ServerUDP
+    {
+    public:
+
+    private:
+
+    };
+
+    class ClientTCP
+    {
+    public:
+        ClientTCP();
+        
+        void connect(Address serverAddress);
+
+
+    private:
+
+    };
+
+    class ClientUDP
+    {
+    public:
+
+    private:
+
     };
 };

@@ -29,6 +29,7 @@ int main()
 		}
 
         bool received = false;
+        bool shouldBreak = false;
         while (!received)
         {
             received = clientSocket.receiveFrom(buffer, sizeof(buffer), nullptr);
@@ -37,11 +38,13 @@ int main()
                 if (strcmp(buffer, "!quit") == 0)
                 {
                     std::cout << "Server left the chat.\n";
+                    shouldBreak = true;
                     break;
                 }
                 else std::cout << "Server: " << buffer << "\n";
             }
         }
+        if (shouldBreak) break;
     }
 
     clientSocket.close();
