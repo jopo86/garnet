@@ -82,66 +82,66 @@ namespace Garnet
         bool m_open;
     };
 
-    class ServerTCP
-    {
-    public:
-        ServerTCP();
-        ServerTCP(Address serverAddress, bool* success = nullptr);
+//     class ServerTCP
+//     {
+//     public:
+//         ServerTCP();
+//         ServerTCP(Address serverAddress, bool* success = nullptr);
 
-        void open(int maxClients, int bufferSize = 256, bool* success = nullptr);
-        void send(int clientIndex, bool* success = nullptr);
-        void send(Address clientAddress, bool* success = nullptr);
-        void close(bool* success = nullptr);
+//         void open(int maxClients, int bufferSize = 256, bool* success = nullptr);
+//         void send(int clientIndex, bool* success = nullptr);
+//         void send(Address clientAddress, bool* success = nullptr);
+//         void close(bool* success = nullptr);
         
-        bool isOpen() const;
+//         bool isOpen() const;
 
-    private:
-        Address m_addr;
-        Socket m_socket;
+//     private:
+//         Address m_addr;
+//         Socket m_socket;
 
-        std::atomic<int> m_bufSize;
+//         std::atomic<int> m_bufSize;
 
-        std::atomic<int> m_nClients;
-        std::unordered_map<int, Socket> m_clientIdxs;
-        std::unordered_map<Address, Socket> m_clients;
+//         std::atomic<int> m_nClients;
+//         std::unordered_map<int, Socket> m_clientIdxs;
+//         std::unordered_map<Address, Socket> m_clients;
 
-        std::atomic<bool> m_open;
+//         std::atomic<bool> m_open;
 
-        void accept(); // accept() and add to maps while true until error (from closure)
-        void receive(Socket& acceptedSocket, int clientIdx); // receive() and callback while true until error (from closure)
-        std::thread m_accepting;
-        std::vector<std::thread> m_receivings;
+//         void accept(); // accept() and add to maps while true until error (from closure)
+//         void receive(Socket& acceptedSocket, int clientIdx); // receive() and callback while true until error (from closure)
+//         std::thread m_accepting;
+//         std::vector<std::thread> m_receivings;
 
 
-        void (*m_pReceiveCallbackIdx)(void* buffer, int bufferSize, int actualSize, int clientIndex);
-        void (*m_pReceiveCallbackAddr)(void* buffer, int bufferSize, int actualSize, Address from);
-    };
+//         void (*m_pReceiveCallbackIdx)(void* buffer, int bufferSize, int actualSize, int clientIndex);
+//         void (*m_pReceiveCallbackAddr)(void* buffer, int bufferSize, int actualSize, Address from);
+//     };
 
-    class ServerUDP
-    {
-    public:
+//     class ServerUDP
+//     {
+//     public:
 
-    private:
+//     private:
 
-    };
+//     };
 
-    class ClientTCP
-    {
-    public:
-        ClientTCP();
+//     class ClientTCP
+//     {
+//     public:
+//         ClientTCP();
         
-        void connect(Address serverAddress);
+//         void connect(Address serverAddress);
 
 
-    private:
+//     private:
 
-    };
+//     };
 
-    class ClientUDP
-    {
-    public:
+//     class ClientUDP
+//     {
+//     public:
 
-    private:
+//     private:
 
-    };
+//     };
 };
