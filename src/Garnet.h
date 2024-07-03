@@ -1,6 +1,10 @@
+#include <functional>
 #include <string>
 #include <unordered_map>
 #include <thread>
+#include <mutex>
+#include <atomic>
+#include <vector>
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -38,6 +42,9 @@ namespace Garnet
 
     const std::string& GetLastError();
 
+    void SetUserPtr(void* ptr);
+    void* GetUserPtr();
+
     enum class Protocol
     {
         Null, TCP, UDP
@@ -47,8 +54,25 @@ namespace Garnet
     {
         std::string IP;
         ushort port;
-    };
 
+        bool operator==(const Address& other) const;
+    };
+};
+
+namespace std
+{
+    template <>
+    struct hash<Garnet::Address>
+    {
+        size_t operator()(const Garnet::Address& addr) const 
+        {
+            return hash<string>()(addr.IP) ^ (hash<int>()(addr.port) << 1);
+        }
+    };
+};
+
+namespace Garnet
+{
     class Socket
     {
     public:
@@ -82,66 +106,88 @@ namespace Garnet
         bool m_open;
     };
 
-//     class ServerTCP
-//     {
-//     public:
-//         ServerTCP();
-//         ServerTCP(Address serverAddress, bool* success = nullptr);
+    class ServerTCP
+    {
+    public:
+        ServerTCP();
+        ServerTCP(Address serverAddress, bool* success = nullptr);
 
-//         void open(int maxClients, int bufferSize = 256, bool* success = nullptr);
-//         void send(int clientIndex, bool* success = nullptr);
-//         void send(Address clientAddress, bool* success = nullptr);
-//         void close(bool* success = nullptr);
+        void open(int maxClients, int bufferSize = 256, bool* success = nullptr);
+        void send(Address clientAddress, void* data, int size, bool* success = nullptr);
+        void close(bool* success = nullptr);
         
-//         bool isOpen() const;
+        bool isOpen() const;
+        int getBufferSize() const;
+        int getNumClients() const;
+        const Socket& getClientAcceptedSocket(Address clientAddress);
+        const std::list<Address>& getClientAddresses();
+        const std::unordered_map<Address, Socket>& getClientMap();
 
-//     private:
-//         Address m_addr;
-//         Socket m_socket;
+        void setBufferSize(int size); // size of receiving buffer in bytes, default 256
+        void setReceiveCallback(void(*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddr));
 
-//         std::atomic<int> m_bufSize;
+    private:
+        Address m_addr;
+        Socket m_socket;
 
-//         std::atomic<int> m_nClients;
-//         std::unordered_map<int, Socket> m_clientIdxs;
-//         std::unordered_map<Address, Socket> m_clients;
+        std::atomic<int> m_bufSize;
+        std::atomic<int> m_nClients;
 
-//         std::atomic<bool> m_open;
+        std::list<Address> m_clientAddrs;
+        std::unordered_map<Address, Socket> m_clientMap;
+        std::mutex m_clientAddrsMtx;
+        std::mutex m_clientMapMtx;
 
-//         void accept(); // accept() and add to maps while true until error (from closure)
-//         void receive(Socket& acceptedSocket, int clientIdx); // receive() and callback while true until error (from closure)
-//         std::thread m_accepting;
-//         std::vector<std::thread> m_receivings;
+        std::atomic<bool> m_open;
 
+        void accept(); // accept() and add to maps while true until error (from closure)
+        void receive(Socket acceptedSocket, int clientIdx); // receive() and callback while true until error (from closure)
+        std::thread m_accepting;
+        std::vector<std::thread> m_receivings;
 
-//         void (*m_pReceiveCallbackIdx)(void* buffer, int bufferSize, int actualSize, int clientIndex);
-//         void (*m_pReceiveCallbackAddr)(void* buffer, int bufferSize, int actualSize, Address from);
-//     };
+        // USER IS RESPONSIBLE FOR DELETING BUFFER
+        void (*m_pReceiveCallback)(void* buffer, int bufferSize, int actualSize, Address fromAddr);
+    };
 
-//     class ServerUDP
-//     {
-//     public:
+    class ServerUDP
+    {
+    public:
 
-//     private:
+    private:
 
-//     };
+    };
 
-//     class ClientTCP
-//     {
-//     public:
-//         ClientTCP();
+    class ClientTCP
+    {
+    public:
+        ClientTCP(int bufferSize = 256, bool* success = nullptr);
         
-//         void connect(Address serverAddress);
+        void connect(Address serverAddress, bool* success = nullptr);
+        void send(void* data, int size, bool* success = nullptr);
+        void disconnect(bool* success = nullptr);
 
+        bool isConnected() const;
 
-//     private:
+        void setBufferSize(int size); // size of receiving buffer in bytes, 256 by default
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize));
 
-//     };
+    private:
+        Socket m_socket;
 
-//     class ClientUDP
-//     {
-//     public:
+        std::atomic<int> m_bufSize;
+        std::atomic<bool> m_connected;
 
-//     private:
+        void receive(); // receive() and callback while true until error (from server or client closure)
+        std::thread m_receiving;
 
-//     };
+        void (*m_pReceiveCallback)(void* buffer, int bufferSize, int actualSize);
+    };
+
+    class ClientUDP
+    {
+    public:
+
+    private:
+
+    };
 };

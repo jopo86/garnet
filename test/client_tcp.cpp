@@ -12,8 +12,8 @@ int main()
     Socket clientSocket(Protocol::TCP);
     std::cout << "Connecting to server...\n";
     clientSocket.connect(Address{
-        .IP = "127.0.0.1", // these should be the same as server address
-        .port = 55555
+        .IP = "73.167.224.67", // these should be the same as server address
+        .port = 8080
     });
 
     std::cout << "CHAT STARTED ----- enter '!quit' to exit\n\n";

@@ -11,7 +11,7 @@ int main()
     Garnet::Init(true);
     Socket serverSocket(Protocol::TCP);
     serverSocket.bind(Address{
-        .IP = "127.0.0.1",
+        .IP = "192.168.4.123",
         .port = 55555
     });
     serverSocket.listen(1);
