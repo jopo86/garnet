@@ -473,6 +473,8 @@ void Garnet::ServerTCP::receive(Socket acceptedSocket, int clientIdx)
             m_clientAddrsMtx.unlock();
             m_clientMapMtx.unlock();
             m_nClients.exchange(m_nClients.load() - 1);
+
+            delete buf;
             break;
         }
 
