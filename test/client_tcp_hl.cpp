@@ -23,7 +23,7 @@ int main()
     SetUserPtr(&client);
     client.setReceiveCallback(receive);
 
-    char buffer[256];
+    char buffer[256] = "";
     while (client.isConnected())
     {
         std::cin.getline(buffer, sizeof(buffer));

@@ -6,8 +6,8 @@ using namespace Garnet;
 
 void receive(void* buffer, int bufferSize, int actualSize, Address clientAddr)
 {
-    std::string msg = "Client " + clientAddr.IP + ": " + std::string((const char*)buffer) + "\n";
-    std::cout << msg;
+    std::string msg = "Client (" + clientAddr.IP + ":" + std::to_string(clientAddr.port) + "): " + std::string((const char*)buffer);
+    std::cout << msg << "\n";
     ServerTCP& server = *((ServerTCP*)GetUserPtr());
     for (const Address& addr : server.getClientAddresses())
     {
@@ -36,7 +36,7 @@ int main()
     {
         std::cin.getline(buffer + 8, sizeof(buffer) - 8);
 
-        if (strcmp(buffer, "!quit") == 0) break;
+        if (strcmp(buffer, "Server: !quit") == 0) break;
 
         for (const Address& addr : server.getClientAddresses())
         {

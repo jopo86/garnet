@@ -5,6 +5,7 @@
 #include <mutex>
 #include <atomic>
 #include <vector>
+#include <list>
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -80,7 +81,7 @@ namespace Garnet
         Socket(Protocol protocol, bool* success = nullptr);
 
         void bind(Address serverAddress, bool* success = nullptr);
-        void listen(int maxClients, bool* success = nullptr);
+        void listen(int backlog, bool* success = nullptr);
         Socket accept(bool* success = nullptr);
         void connect(Address serverAddress, bool* success = nullptr);
 
@@ -112,7 +113,7 @@ namespace Garnet
         ServerTCP();
         ServerTCP(Address serverAddress, bool* success = nullptr);
 
-        void open(int maxClients, int bufferSize = 256, bool* success = nullptr);
+        void open(int backlog = SOMAXCONN, int bufferSize = 256, bool* success = nullptr);
         void send(Address clientAddress, void* data, int size, bool* success = nullptr);
         void close(bool* success = nullptr);
         
