@@ -56,6 +56,7 @@ namespace Garnet
         std::string IP;
         ushort port;
 
+        void operator=(const Address& other);
         bool operator==(const Address& other) const;
     };
 };
@@ -86,7 +87,7 @@ namespace Garnet
         void connect(Address serverAddress, bool* success = nullptr);
 
         int send(void* data, int size, bool* success = nullptr);
-        int receive(void* buffer, int bufferSize);
+        int receive(void* buffer, int bufferSize, bool* success = nullptr);
         int sendTo(void* data, int size, Address to, bool* success = nullptr);
         int receiveFrom(void* buffer, int bufferSize, Address* from, bool* success = nullptr);
 
@@ -113,8 +114,8 @@ namespace Garnet
         ServerTCP();
         ServerTCP(Address serverAddress, bool* success = nullptr);
 
-        void open(int backlog = SOMAXCONN, int bufferSize = 256, bool* success = nullptr);
-        void send(Address clientAddress, void* data, int size, bool* success = nullptr);
+        void open(int backlog = 10, bool* success = nullptr);
+        void send(void* data, int size, Address clientAddress, bool* success = nullptr);
         void close(bool* success = nullptr);
         
         bool isOpen() const;
@@ -125,7 +126,7 @@ namespace Garnet
         const std::unordered_map<Address, Socket>& getClientMap();
 
         void setBufferSize(int size); // size of receiving buffer in bytes, default 256
-        void setReceiveCallback(void(*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddr));
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddress));
 
     private:
         Address m_addr;
@@ -142,7 +143,7 @@ namespace Garnet
         std::atomic<bool> m_open;
 
         void accept(); // accept() and add to maps while true until error (from closure)
-        void receive(Socket acceptedSocket, int clientIdx); // receive() and callback while true until error (from closure)
+        void receive(Socket acceptedSocket); // receive() and callback while true until error (from closure)
         std::thread m_accepting;
         std::vector<std::thread> m_receivings;
 
@@ -153,21 +154,43 @@ namespace Garnet
     class ServerUDP
     {
     public:
+        ServerUDP();
+        ServerUDP(Address serverAddress, bool* success = nullptr);
+
+        void open(bool* success = nullptr);
+        void send(void* data, int size, Address clientAddress, bool* success = nullptr);
+        void close(bool* success = nullptr);
+
+        bool isOpen() const;
+        int getBufferSize() const;
+
+        void setBufferSize(int size);
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddress));
 
     private:
+        Address m_addr;
+        Socket m_socket;
 
+        std::atomic<int> m_bufSize;
+        std::atomic<bool> m_open;
+
+        void receive();
+        std::thread m_receiving;
+
+        void (*m_pReceiveCallback)(void* buffer, int bufferSize, int actualSize, Address fromAddr);
     };
 
     class ClientTCP
     {
     public:
-        ClientTCP(int bufferSize = 256, bool* success = nullptr);
+        ClientTCP(bool* success = nullptr);
         
         void connect(Address serverAddress, bool* success = nullptr);
         void send(void* data, int size, bool* success = nullptr);
         void disconnect(bool* success = nullptr);
 
         bool isConnected() const;
+        int getBufferSize() const;
 
         void setBufferSize(int size); // size of receiving buffer in bytes, 256 by default
         void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize));
@@ -187,8 +210,27 @@ namespace Garnet
     class ClientUDP
     {
     public:
+        ClientUDP(bool* success = nullptr);
+
+        void start(bool* success = nullptr);
+        void send(void* data, int size, Address serverAddress, bool* success = nullptr);
+        void stop(bool* success = nullptr);
+
+        bool isRunning() const;
+        int getBufferSize() const;
+
+        void setBufferSize(int size);
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromServerAddress));
 
     private:
+        Socket m_socket;
 
+        std::atomic<int> m_bufSize;
+        std::atomic<bool> m_running;
+
+        void receive();
+        std::thread m_receiving;
+
+        void (*m_pReceiveCallback)(void* buffer, int bufferSize, int actualSize, Address fromAddr);
     };
 };
