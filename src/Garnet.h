@@ -127,6 +127,8 @@ namespace Garnet
 
         void setBufferSize(int size); // size of receiving buffer in bytes, default 256
         void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddress));
+        void setClientConnectCallback(void (*callback)(Address clientAddress));
+        void setClientDisconnectCallback(void (*callback)(Address clientAddress));
 
     private:
         Address m_addr;
@@ -149,6 +151,8 @@ namespace Garnet
 
         // USER IS RESPONSIBLE FOR DELETING BUFFER
         void (*m_pReceiveCallback)(void* buffer, int bufferSize, int actualSize, Address fromAddr);
+        void (*m_pClientConnectCallback)(Address clientAddr);
+        void (*m_pClientDisconnectCallback)(Address clientAddr);
     };
 
     class ServerUDP

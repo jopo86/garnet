@@ -12,7 +12,7 @@ int main()
     Socket clientSocket(Protocol::TCP);
     std::cout << "Connecting to server...\n";
     clientSocket.connect(Address{
-        .IP = "73.167.224.67", // these should be the same as server address
+        .IP = "josh-posner.com", // these should be the same as server address
         .port = 8080
     });
 

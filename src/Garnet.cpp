@@ -225,7 +225,22 @@ Garnet::Socket Garnet::Socket::accept(bool* success)
 
 void Garnet::Socket::connect(Address addr, bool* success)
 {
-    SOCKADDR_IN wsAddr = addr_gtow(addr);
+    SOCKADDR_IN wsAddr;
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if (getaddrinfo(addr.IP.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+    {
+        err = "Socket connect failed: failed to resolve host";
+        if (printErrors) std::cout << err << "\n";
+        if (success != nullptr) *success = false;
+        return;
+    }
+
+    wsAddr = *(SOCKADDR_IN*)res->ai_addr;
+    freeaddrinfo(res);
 
     if (::connect(m_wsSocket, (SOCKADDR*)&wsAddr, sizeof(wsAddr)) == SOCKET_ERROR)
     {
@@ -236,7 +251,6 @@ void Garnet::Socket::connect(Address addr, bool* success)
     }
 
     if (success != nullptr) *success = true;
-    return;
 }
 
 int Garnet::Socket::send(void* data, int size, bool* success)
@@ -300,6 +314,8 @@ Garnet::ServerTCP::ServerTCP()
     m_nClients.exchange(0);
     m_open.exchange(false);
     m_pReceiveCallback = nullptr;
+    m_pClientConnectCallback = nullptr;
+    m_pClientDisconnectCallback = nullptr;
 }
 
 Garnet::ServerTCP::ServerTCP(Address addr, bool* success)
@@ -312,6 +328,8 @@ Garnet::ServerTCP::ServerTCP(Address addr, bool* success)
     m_nClients.exchange(0);
     m_open.exchange(false);
     m_pReceiveCallback = nullptr;
+    m_pClientConnectCallback = nullptr;
+    m_pClientDisconnectCallback = nullptr;
 
     if (success != nullptr) *success = successA && successB; 
 }
@@ -403,6 +421,16 @@ void Garnet::ServerTCP::setReceiveCallback(void(*callback)(void* buffer, int buf
     m_pReceiveCallback = callback;
 }
 
+void Garnet::ServerTCP::setClientConnectCallback(void(*callback)(Address clientAddr))
+{
+    m_pClientConnectCallback = callback;
+}
+
+void Garnet::ServerTCP::setClientDisconnectCallback(void(*callback)(Address clientAddr))
+{
+    m_pClientDisconnectCallback = callback;
+}
+
 void Garnet::ServerTCP::accept()
 {
     while (m_open.load())
@@ -426,6 +454,8 @@ void Garnet::ServerTCP::accept()
 
             m_receivings.push_back(std::thread(&Garnet::ServerTCP::receive, this, acceptedSocket));
             m_nClients.exchange(m_nClients.load() + 1);
+
+            if (m_pClientConnectCallback != nullptr) m_pClientConnectCallback(acceptedSocket.getAddress());
         }
     }
 }
@@ -449,6 +479,8 @@ void Garnet::ServerTCP::receive(Socket acceptedSocket)
             m_clientAddrsMtx.unlock();
             m_clientMapMtx.unlock();
             m_nClients.exchange(m_nClients.load() - 1);
+
+            if (m_pClientDisconnectCallback != nullptr) m_pClientDisconnectCallback(acceptedSocket.getAddress());
 
             delete buf;
             break;

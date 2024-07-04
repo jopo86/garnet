@@ -17,6 +17,30 @@ void receive(void* buffer, int bufferSize, int actualSize, Address clientAddr)
     delete buffer;
 }
 
+void clientConnected(Address clientAddr)
+{
+    std::string msg = "Client (" + clientAddr.IP + ":" + std::to_string(clientAddr.port) + ") connected.";
+    std::cout << msg << "\n";
+    ServerTCP& server = *((ServerTCP*)GetUserPtr());
+    for (const Address& addr : server.getClientAddresses())
+    {
+        if (clientAddr == addr) continue;
+        server.send((void*)msg.c_str(), msg.length(), addr);
+    }
+}
+
+void clientDisconnected(Address clientAddr)
+{
+    std::string msg = "Client (" + clientAddr.IP + ":" + std::to_string(clientAddr.port) + ") disconnected.";
+    std::cout << msg << "\n";
+    ServerTCP& server = *((ServerTCP*)GetUserPtr());
+    for (const Address& addr : server.getClientAddresses())
+    {
+        if (clientAddr == addr) continue;
+        server.send((void*)msg.c_str(), msg.length(), addr);
+    }
+}
+
 int main()
 {
     std::cout << "SERVER\n\n";
@@ -29,6 +53,8 @@ int main()
     SetUserPtr(&server);
 
     server.setReceiveCallback(receive);
+    server.setClientConnectCallback(clientConnected);
+    server.setClientDisconnectCallback(clientDisconnected);
     server.open();
 
     char buffer[256] = "Server: ";
