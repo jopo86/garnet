@@ -46,6 +46,7 @@ namespace Garnet
     void SetUserPtr(void* ptr);
     void* GetUserPtr();
 
+
     enum class Protocol
     {
         Null, TCP, UDP
@@ -59,6 +60,8 @@ namespace Garnet
         void operator=(const Address& other);
         bool operator==(const Address& other) const;
     };
+
+    std::string HostnameToIP(const std::string& hostname, bool* success = nullptr);
 };
 
 namespace std

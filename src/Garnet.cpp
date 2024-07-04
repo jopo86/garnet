@@ -113,6 +113,37 @@ void* Garnet::GetUserPtr()
     return userPtr;
 }
 
+std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
+{
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;  // Use IPv4
+    hints.ai_socktype = SOCK_STREAM;  // Use TCP
+
+    if (getaddrinfo(hostname.c_str(), nullptr, &hints, &res) != 0)
+    {
+        err = "Failed to resolve hostname: '" + hostname + "'";
+        if (printErrors) std::cout << err << "\n";
+        if (success != nullptr) *success = false;
+        return "0.0.0.0";
+    }
+
+    char ipStr[INET_ADDRSTRLEN];
+    if (inet_ntop(AF_INET, &(((struct sockaddr_in*)res->ai_addr)->sin_addr), ipStr, sizeof(ipStr)) == nullptr)
+    {
+        freeaddrinfo(res);
+        err = "Failed to convert address to string";
+        if (printErrors) std::cout << err << "\n";
+        if (success != nullptr) *success = false;
+        return "0.0.0.0";
+    }
+
+    std::string ipAddr(ipStr);
+    freeaddrinfo(res);
+    if (success != nullptr) *success = true;
+    return ipAddr;
+}
+
 Garnet::Socket::Socket()
 {
     m_addr.IP = "0.0.0.0";
@@ -269,7 +300,23 @@ int Garnet::Socket::receive(void* buffer, int bufferSize, bool* success)
 
 int Garnet::Socket::sendTo(void* data, int size, Address to, bool* success)
 {
-    SOCKADDR_IN wsTo = addr_gtow(to);
+    SOCKADDR_IN wsTo;
+    struct addrinfo hints, *res;
+    memset(&hints, 0, sizeof(hints));
+    hints.ai_family = AF_INET;
+    hints.ai_socktype = SOCK_DGRAM;
+
+    if (getaddrinfo(to.IP.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+    {
+        err = "sendTo failed: failed to resolve host";
+        if (printErrors) std::cout << err << "\n";
+        if (success != nullptr) *success = false;
+        return SOCKET_ERROR;
+    }
+
+    wsTo = *(SOCKADDR_IN*)res->ai_addr;
+    freeaddrinfo(res);
+
     int nBytes = ::sendto(m_wsSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo));
     if (success != nullptr) *success = nBytes != SOCKET_ERROR;
     return nBytes;
