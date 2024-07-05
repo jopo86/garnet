@@ -7,8 +7,6 @@
 #include <vector>
 #include <list>
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
 
 #define GNET_VERSION_MAJOR  0
 #define GNET_VERSION_MINOR  0
@@ -20,16 +18,31 @@
 #define GNET_STABLE         false
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
-#define GNET_OS_WINDOWS
+    #define GNET_OS_WINDOWS
 #elif defined(__linux__) || defined(__linux) || defined(linux) || defined(__gnu_linux__)
-#define GNET_OS_LINUX
+    #define GNET_OS_LINUX
 #elif defined(__APPLE__) || defined(__MACH__)
-#define GNET_OS_MAC
+    #define GNET_OS_MAC
 #else
-#define GNET_OS_UNKNOWN
+    #define GNET_OS_UNKNOWN
 #endif
 
 typedef unsigned short ushort;
+
+#ifdef GNET_OS_WINDOWS
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+    #include <sys/types.h>
+    #include <sys/socket.h>
+    #include <netinet/in.h>
+    #include <arpa/inet.h>
+    #include <cstring>
+    #include <unistd.h>
+    #include <errno.h>
+    #include <fcntl.h>
+    #include <netdb.h>
+#endif
 
 namespace Garnet
 {
@@ -104,9 +117,15 @@ namespace Garnet
         Address m_addr;
         Protocol m_proto;
 
-        SOCKET m_wsSocket;
-        SOCKADDR_IN m_wsAddr;
-        int m_wsAddrSize;
+    #ifdef GNET_OS_WINDOWS
+        SOCKET m_bSocket;
+        SOCKADDR_IN m_bAddr;
+        int m_bAddrSize;
+    #elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+        int m_bSocket;
+        sockaddr_in m_bAddr;
+        socklen_t m_bAddrSize;
+    #endif
 
         bool m_open;
     };

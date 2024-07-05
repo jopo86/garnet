@@ -3,30 +3,59 @@
 #include <iostream>
 #include <vector>
 
-bool wsaInitialized = false;
-WSADATA wsaData;
+#ifdef GNET_OS_WINDOWS
+    bool wsaInitialized = false;
+    WSADATA wsaData;
+#endif
+
 std::string err;
 bool printErrors = false;
 void* userPtr;
 
-SOCKADDR_IN addr_gtow(Garnet::Address addr)
-{
-    SOCKADDR_IN wsAddr;
-    wsAddr.sin_family = AF_INET;
-    inet_pton(AF_INET, addr.IP.c_str(), &wsAddr.sin_addr.s_addr);
-    wsAddr.sin_port = htons(addr.port);
-    return wsAddr;
-}
+#ifdef GNET_OS_WINDOWS
 
-Garnet::Address addr_wtog(SOCKADDR_IN addr)
-{
-    Garnet::Address gAddr;
-    char buf[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
-    gAddr.IP = std::string(buf);
-    gAddr.port = ntohs(addr.sin_port); 
-    return gAddr;
-}
+    SOCKADDR_IN addr_gtob(Garnet::Address addr)
+    {
+        SOCKADDR_IN bAddr;
+        bAddr.sin_family = AF_INET;
+        inet_pton(AF_INET, addr.IP.c_str(), &bAddr.sin_addr.s_addr);
+        bAddr.sin_port = htons(addr.port);
+        return bAddr;
+    }
+
+    Garnet::Address addr_btog(SOCKADDR_IN addr)
+    {
+        Garnet::Address gAddr;
+        char buf[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
+        gAddr.IP = std::string(buf);
+        gAddr.port = ntohs(addr.sin_port); 
+        return gAddr;
+    }
+
+#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+
+    sockaddr_in addr_gtob(Garnet::Address addr) 
+    {
+        sockaddr_in bAddr;
+        memset(&bAddr, 0, sizeof(bAddr)); // Ensure struct is zeroed out
+        bAddr.sin_family = AF_INET;
+        inet_pton(AF_INET, addr.IP.c_str(), &bAddr.sin_addr.s_addr);
+        bAddr.sin_port = htons(addr.port);
+        return bAddr;
+    }
+
+    Garnet::Address addr_btog(sockaddr_in addr) 
+    {
+        Garnet::Address gAddr;
+        char buf[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
+        gAddr.IP = std::string(buf);
+        gAddr.port = ntohs(addr.sin_port);
+        return gAddr;
+    }
+
+#endif
 
 void Garnet::Address::operator=(const Address& other)
 {
@@ -66,37 +95,49 @@ std::string Garnet::GetVersionString()
     return v;
 }
 
-bool Garnet::Init(bool _printErrors)
-{
-    if (wsaInitialized)
+#ifdef GNET_OS_WINDOWS
+
+    bool Garnet::Init(bool _printErrors)
     {
-        err = "Initialization failed: already initialized";
+        if (wsaInitialized)
+        {
+            err = "Initialization failed: already initialized";
+            if (printErrors) std::cout << err << "\n";
+            return false;
+        }
+
+        err = "Initialization failed: Garnet currently only supports Windows operating systems.";
         if (printErrors) std::cout << err << "\n";
         return false;
+
+        if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+        {
+            err = "Initialization failed: Winsock DLL not found";
+            if (printErrors) std::cout << err << "\n";
+            return false;
+        }
+
+        wsaInitialized = true;
+        printErrors = _printErrors;
+        return true;
     }
 
-#ifndef GNET_OS_WINDOWS
-    err = "Initialization failed: Garnet currently only supports Windows operating systems.";
-    if (printErrors) std::cout << err << "\n";
-    return false;
+    void Garnet::Terminate()
+    {
+        WSACleanup();
+    }
+
+#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+
+    bool Garnet::Init(bool _printErrors)
+    {
+        printErrors = _printErrors;
+        return true;
+    }
+
+    void Garnet::Terminate() {}
+
 #endif
-
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
-    {
-        err = "Initialization failed: Winsock DLL not found";
-        if (printErrors) std::cout << err << "\n";
-        return false;
-    }
-
-    wsaInitialized = true;
-    printErrors = _printErrors;
-    return true;
-}
-
-void Garnet::Terminate()
-{
-    WSACleanup();
-}
 
 const std::string& Garnet::GetLastError()
 {
@@ -144,199 +185,398 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
     return ipAddr;
 }
 
-Garnet::Socket::Socket()
-{
-    m_addr.IP = "0.0.0.0";
-    m_addr.port = 0;
-    m_proto = Protocol::Null;
-    m_wsSocket = INVALID_SOCKET;
-    m_wsAddr.sin_family = AF_INET;
-    m_wsAddrSize = sizeof(m_wsAddr);
-    m_open = false;
-}
+#ifdef GNET_OS_WINDOWS
 
-Garnet::Socket::Socket(Protocol proto, bool* success)
-{
-    m_addr.IP = "0.0.0.0";
-    m_addr.port = 0;
-    m_proto = proto;
-    m_wsSocket = INVALID_SOCKET;
-    m_wsAddr.sin_family = AF_INET;
-    m_wsAddrSize = sizeof(m_wsAddr);
-
-    if (m_proto == Protocol::Null)
+    Garnet::Socket::Socket()
     {
-        err = "Socket creation failed: protocol cannot be null";
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
-        return;
+        m_addr.IP = "0.0.0.0";
+        m_addr.port = 0;
+        m_proto = Protocol::Null;
+        m_bSocket = INVALID_SOCKET;
+        m_bAddr.sin_family = AF_INET;
+        m_bAddrSize = sizeof(m_bAddr);
+        m_open = false;
     }
-    else if (m_proto == Protocol::TCP)
+
+    Garnet::Socket::Socket(Protocol proto, bool* success)
     {
-        m_wsSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-        if (m_wsSocket == INVALID_SOCKET)
+        m_addr.IP = "0.0.0.0";
+        m_addr.port = 0;
+        m_proto = proto;
+        m_bSocket = INVALID_SOCKET;
+        m_bAddr.sin_family = AF_INET;
+        m_bAddrSize = sizeof(m_bAddr);
+
+        if (m_proto == Protocol::Null)
         {
-            err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
+            err = "Socket creation failed: protocol cannot be null";
             if (printErrors) std::cout << err << "\n";
             if (success != nullptr) *success = false;
             return;
         }
-    }
-    else if (m_proto == Protocol::UDP)
-    {
-        m_wsSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        if (m_wsSocket == INVALID_SOCKET)
+        else if (m_proto == Protocol::TCP)
         {
-            err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
+            m_bSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (m_bSocket == INVALID_SOCKET)
+            {
+                err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
+                if (printErrors) std::cout << err << "\n";
+                if (success != nullptr) *success = false;
+                return;
+            }
+        }
+        else if (m_proto == Protocol::UDP)
+        {
+            m_bSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            if (m_bSocket == INVALID_SOCKET)
+            {
+                err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
+                if (printErrors) std::cout << err << "\n";
+                if (success != nullptr) *success = false;
+                return;
+            }
+        }
+
+        m_open = true;
+        if (success != nullptr) *success = true;
+    }
+
+    void Garnet::Socket::bind(Address addr, bool* success)
+    {
+        m_addr = addr;
+        SOCKADDR_IN bAddr = addr_gtob(addr);
+        m_bAddr = bAddr;
+        m_bAddrSize = sizeof(bAddr);
+
+        if (::bind(m_bSocket, (SOCKADDR*)&bAddr, sizeof(bAddr)) == SOCKET_ERROR)
+        {
+            err = "Socket binding failed. WSA error code: " + std::to_string(WSAGetLastError());
             if (printErrors) std::cout << err << "\n";
             if (success != nullptr) *success = false;
             return;
         }
-    }
 
-    m_open = true;
-    if (success != nullptr) *success = true;
-}
-
-void Garnet::Socket::bind(Address addr, bool* success)
-{
-    m_addr = addr;
-    SOCKADDR_IN wsAddr = addr_gtow(addr);
-    m_wsAddr = wsAddr;
-    m_wsAddrSize = sizeof(wsAddr);
-
-    if (::bind(m_wsSocket, (SOCKADDR*)&wsAddr, sizeof(wsAddr)) == SOCKET_ERROR)
-    {
-        err = "Socket binding failed. WSA error code: " + std::to_string(WSAGetLastError());
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
+        if (success != nullptr) *success = true;    
         return;
     }
 
-    if (success != nullptr) *success = true;    
-    return;
-}
-
-void Garnet::Socket::listen(int backlog, bool* success)
-{
-    if (::listen(m_wsSocket, backlog) == SOCKET_ERROR)
+    void Garnet::Socket::listen(int backlog, bool* success)
     {
-        err = "Socket listening failed. WSA error code: " + std::to_string(WSAGetLastError());
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;        
+        if (::listen(m_bSocket, backlog) == SOCKET_ERROR)
+        {
+            err = "Socket listening failed. WSA error code: " + std::to_string(WSAGetLastError());
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;        
+            return;
+        }
+
+        if (success != nullptr) *success = true;
         return;
     }
 
-    if (success != nullptr) *success = true;
-    return;
-}
-
-Garnet::Socket Garnet::Socket::accept(bool* success)
-{
-    Socket retval;
-
-    ::SOCKET acceptSocket = INVALID_SOCKET;
-    acceptSocket = ::accept(m_wsSocket, (SOCKADDR*)&retval.m_wsAddr, &retval.m_wsAddrSize);
-    if (acceptSocket == INVALID_SOCKET)
+    Garnet::Socket Garnet::Socket::accept(bool* success)
     {
-        err = "Socket accept failed. WSA error code: " + std::to_string(WSAGetLastError());
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
+        Socket retval;
+
+        ::SOCKET acceptSocket = INVALID_SOCKET;
+        acceptSocket = ::accept(m_bSocket, (SOCKADDR*)&retval.m_bAddr, &retval.m_bAddrSize);
+        if (acceptSocket == INVALID_SOCKET)
+        {
+            err = "Socket accept failed. WSA error code: " + std::to_string(WSAGetLastError());
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return retval;
+        }
+
+        retval.m_bSocket = acceptSocket;
+        retval.m_addr = addr_btog(retval.m_bAddr);
+        retval.m_proto = m_proto;
+
+        if (success != nullptr) *success = true;
+
         return retval;
     }
 
-    retval.m_wsSocket = acceptSocket;
-    retval.m_addr = addr_wtog(retval.m_wsAddr);
-    retval.m_proto = m_proto;
-
-    if (success != nullptr) *success = true;
-
-    return retval;
-}
-
-void Garnet::Socket::connect(Address addr, bool* success)
-{
-    SOCKADDR_IN wsAddr;
-    struct addrinfo hints, *res;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if (getaddrinfo(addr.IP.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+    void Garnet::Socket::connect(Address addr, bool* success)
     {
-        err = "Socket connect failed: failed to resolve host";
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
+        SOCKADDR_IN bAddr;
+        struct addrinfo hints, *res;
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
+
+        if (getaddrinfo(addr.IP.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+        {
+            err = "Socket connect failed: failed to resolve host";
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return;
+        }
+
+        bAddr = *(SOCKADDR_IN*)res->ai_addr;
+        freeaddrinfo(res);
+
+        if (::connect(m_bSocket, (SOCKADDR*)&bAddr, sizeof(bAddr)) == SOCKET_ERROR)
+        {
+            err = "Socket connect failed. WSA error code: " + std::to_string(WSAGetLastError());
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return;
+        }
+
+        if (success != nullptr) *success = true;
+    }
+
+    int Garnet::Socket::send(void* data, int size, bool* success)
+    {
+        int nBytes = ::send(m_bSocket, (char*)data, size, 0);
+        if (success != nullptr) *success = nBytes != SOCKET_ERROR;
+        return nBytes;
+    }
+
+    int Garnet::Socket::receive(void* buffer, int bufferSize, bool* success)
+    {
+        int nBytes = ::recv(m_bSocket, (char*)buffer, bufferSize, 0);
+        if (success != nullptr) *success = nBytes != SOCKET_ERROR;
+        return nBytes;
+    }
+
+    int Garnet::Socket::sendTo(void* data, int size, Address to, bool* success)
+    {
+        SOCKADDR_IN wsTo;
+        struct addrinfo hints, *res;
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_DGRAM;
+
+        if (getaddrinfo(to.IP.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+        {
+            err = "sendTo failed: failed to resolve host";
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return SOCKET_ERROR;
+        }
+
+        wsTo = *(SOCKADDR_IN*)res->ai_addr;
+        freeaddrinfo(res);
+
+        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo));
+        if (success != nullptr) *success = nBytes != SOCKET_ERROR;
+        return nBytes;
+    }
+
+    int Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from, bool* success)
+    {
+        SOCKADDR_IN wsFrom;
+        int wsFromSize = sizeof(wsFrom);
+        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, &wsFromSize);
+        if (success != nullptr) *success = nBytes != SOCKET_ERROR;
+        if (from != nullptr && nBytes != SOCKET_ERROR) *from = addr_btog(wsFrom);
+        return nBytes;
+    }
+
+    void Garnet::Socket::close()
+    {
+        closesocket(m_bSocket);
+        m_open = false;
+    }
+
+#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+    Garnet::Socket::Socket()
+    {
+        m_addr.IP = "0.0.0.0";
+        m_addr.port = 0;
+        m_proto = Protocol::Null;
+        m_bSocket = -1;
+        m_bAddr.sin_family = AF_INET;
+        m_bAddrSize = sizeof(m_bAddr);
+        m_open = false;
+    }
+
+    Garnet::Socket::Socket(Protocol proto, bool* success)
+    {
+        m_addr.IP = "0.0.0.0";
+        m_addr.port = 0;
+        m_proto = proto;
+        m_bSocket = -1;
+        m_bAddr.sin_family = AF_INET;
+        m_bAddrSize = sizeof(m_bAddr);
+
+        if (m_proto == Protocol::Null)
+        {
+            err = "Socket creation failed: protocol cannot be null";
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return;
+        }
+        else if (m_proto == Protocol::TCP)
+        {
+            m_bSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            if (m_bSocket == -1)
+            {
+                err = "Socket creation failed. Error: " + std::string(strerror(errno));
+                if (printErrors) std::cout << err << "\n";
+                if (success != nullptr) *success = false;
+                return;
+            }
+        }
+        else if (m_proto == Protocol::UDP)
+        {
+            m_bSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+            if (m_bSocket == -1)
+            {
+                err = "Socket creation failed. Error: " + std::string(strerror(errno));
+                if (printErrors) std::cout << err << "\n";
+                if (success != nullptr) *success = false;
+                return;
+            }
+        }
+
+        m_open = true;
+        if (success != nullptr) *success = true;
+    }
+
+    void Garnet::Socket::bind(Address addr, bool* success)
+    {
+        m_addr = addr;
+        sockaddr_in bAddr = addr_gtob(addr);
+        m_bAddr = bAddr;
+        m_bAddrSize = sizeof(bAddr);
+
+        if (::bind(m_bSocket, (SOCKADDR*)&bAddr, sizeof(bAddr)) == -1)
+        {
+            err = "Socket binding failed. Error: " + std::string(strerror(errno));
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return;
+        }
+
+        if (success != nullptr) *success = true;    
         return;
     }
 
-    wsAddr = *(SOCKADDR_IN*)res->ai_addr;
-    freeaddrinfo(res);
-
-    if (::connect(m_wsSocket, (SOCKADDR*)&wsAddr, sizeof(wsAddr)) == SOCKET_ERROR)
+    void Garnet::Socket::listen(int backlog, bool* success)
     {
-        err = "Socket connect failed. WSA error code: " + std::to_string(WSAGetLastError());
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
+        if (::listen(m_bSocket, backlog) == -1)
+        {
+            err = "Socket listening failed. Error: " + std::string(strerror(errno));
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;        
+            return;
+        }
+
+        if (success != nullptr) *success = true;
         return;
     }
 
-    if (success != nullptr) *success = true;
-}
-
-int Garnet::Socket::send(void* data, int size, bool* success)
-{
-    int nBytes = ::send(m_wsSocket, (char*)data, size, 0);
-    if (success != nullptr) *success = nBytes != SOCKET_ERROR;
-    return nBytes;
-}
-
-int Garnet::Socket::receive(void* buffer, int bufferSize, bool* success)
-{
-    int nBytes = ::recv(m_wsSocket, (char*)buffer, bufferSize, 0);
-    if (success != nullptr) *success = nBytes != SOCKET_ERROR;
-    return nBytes;
-}
-
-int Garnet::Socket::sendTo(void* data, int size, Address to, bool* success)
-{
-    SOCKADDR_IN wsTo;
-    struct addrinfo hints, *res;
-    memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_DGRAM;
-
-    if (getaddrinfo(to.IP.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+    Garnet::Socket Garnet::Socket::accept(bool* success)
     {
-        err = "sendTo failed: failed to resolve host";
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
-        return SOCKET_ERROR;
+        Socket retval;
+
+        ::SOCKET acceptSocket = -1;
+        acceptSocket = ::accept(m_bSocket, (SOCKADDR*)&retval.m_bAddr, &retval.m_bAddrSize);
+        if (acceptSocket == -1)
+        {
+            err = "Socket accept failed. Error: " + std::string(strerror(errno));
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return retval;
+        }
+
+        retval.m_bSocket = acceptSocket;
+        retval.m_addr = addr_btog(retval.m_bAddr);
+        retval.m_proto = m_proto;
+
+        if (success != nullptr) *success = true;
+
+        return retval;
     }
 
-    wsTo = *(SOCKADDR_IN*)res->ai_addr;
-    freeaddrinfo(res);
+    void Garnet::Socket::connect(Address addr, bool* success)
+    {
+        sockaddr_in bAddr;
+        struct addrinfo hints, *res;
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_STREAM;
 
-    int nBytes = ::sendto(m_wsSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo));
-    if (success != nullptr) *success = nBytes != SOCKET_ERROR;
-    return nBytes;
-}
+        if (getaddrinfo(addr.IP.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+        {
+            err = "Socket connect failed: failed to resolve host";
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return;
+        }
 
-int Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from, bool* success)
-{
-    SOCKADDR_IN wsFrom;
-    int wsFromSize = sizeof(wsFrom);
-    int nBytes = ::recvfrom(m_wsSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, &wsFromSize);
-    if (success != nullptr) *success = nBytes != SOCKET_ERROR;
-    if (from != nullptr && nBytes != SOCKET_ERROR) *from = addr_wtog(wsFrom);
-    return nBytes;
-}
+        bAddr = *(sockaddr_in*)res->ai_addr;
+        freeaddrinfo(res);
 
-void Garnet::Socket::close()
-{
-    closesocket(m_wsSocket);
-    m_open = false;
-}
+        if (::connect(m_bSocket, (SOCKADDR*)&bAddr, sizeof(bAddr)) == -1)
+        {
+            err = "Socket connect failed. Error: " + std::string(strerror(errno));
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return;
+        }
+
+        if (success != nullptr) *success = true;
+    }
+
+    int Garnet::Socket::send(void* data, int size, bool* success)
+    {
+        int nBytes = ::send(m_bSocket, (char*)data, size, 0);
+        if (success != nullptr) *success = nBytes != -1;
+        return nBytes;
+    }
+
+    int Garnet::Socket::receive(void* buffer, int bufferSize, bool* success)
+    {
+        int nBytes = ::recv(m_bSocket, (char*)buffer, bufferSize, 0);
+        if (success != nullptr) *success = nBytes != -1;
+        return nBytes;
+    }
+
+    int Garnet::Socket::sendTo(void* data, int size, Address to, bool* success)
+    {
+        sockaddr_in wsTo;
+        struct addrinfo hints, *res;
+        memset(&hints, 0, sizeof(hints));
+        hints.ai_family = AF_INET;
+        hints.ai_socktype = SOCK_DGRAM;
+
+        if (getaddrinfo(to.IP.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+        {
+            err = "sendTo failed: failed to resolve host";
+            if (printErrors) std::cout << err << "\n";
+            if (success != nullptr) *success = false;
+            return -1;
+        }
+
+        wsTo = *(sockaddr_in*)res->ai_addr;
+        freeaddrinfo(res);
+
+        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo));
+        if (success != nullptr) *success = nBytes != -1;
+        return nBytes;
+    }
+
+    int Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from, bool* success)
+    {
+        sockaddr_in wsFrom;
+        int wsFromSize = sizeof(wsFrom);
+        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, &wsFromSize);
+        if (success != nullptr) *success = nBytes != -1;
+        if (from != nullptr && nBytes != -1) *from = addr_btog(wsFrom);
+        return nBytes;
+    }
+
+    void Garnet::Socket::close()
+    {
+        ::close(m_bSocket);
+        m_open = false;
+    }
+    
+#endif
 
 const Garnet::Address& Garnet::Socket::getAddress() const
 {
