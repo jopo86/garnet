@@ -10,7 +10,7 @@
 
 std::string err;
 bool printErrors = false;
-void* userPtr;
+void* userPtr = nullptr;
 
 #ifdef GNET_OS_WINDOWS
 
@@ -18,7 +18,7 @@ void* userPtr;
     {
         SOCKADDR_IN bAddr;
         bAddr.sin_family = AF_INET;
-        inet_pton(AF_INET, addr.IP.c_str(), &bAddr.sin_addr.s_addr);
+        inet_pton(AF_INET, addr.host.c_str(), &bAddr.sin_addr.s_addr);
         bAddr.sin_port = htons(addr.port);
         return bAddr;
     }
@@ -28,19 +28,19 @@ void* userPtr;
         Garnet::Address gAddr;
         char buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
-        gAddr.IP = std::string(buf);
+        gAddr.host = std::string(buf);
         gAddr.port = ntohs(addr.sin_port); 
         return gAddr;
     }
 
-#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+#elif defined(GNET_OS_UNIX)
 
     sockaddr_in addr_gtob(Garnet::Address addr) 
     {
         sockaddr_in bAddr;
         memset(&bAddr, 0, sizeof(bAddr)); // Ensure struct is zeroed out
         bAddr.sin_family = AF_INET;
-        inet_pton(AF_INET, addr.IP.c_str(), &bAddr.sin_addr.s_addr);
+        inet_pton(AF_INET, addr.host.c_str(), &bAddr.sin_addr.s_addr);
         bAddr.sin_port = htons(addr.port);
         return bAddr;
     }
@@ -50,7 +50,7 @@ void* userPtr;
         Garnet::Address gAddr;
         char buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
-        gAddr.IP = std::string(buf);
+        gAddr.host = std::string(buf);
         gAddr.port = ntohs(addr.sin_port);
         return gAddr;
     }
@@ -59,13 +59,13 @@ void* userPtr;
 
 void Garnet::Address::operator=(const Address& other)
 {
-    IP = other.IP;
+    host = other.host;
     port = other.port;
 }
 
 bool Garnet::Address::operator==(const Address& other) const
 {
-    return (IP == other.IP && port == other.port);
+    return (host == other.host && port == other.port);
 }
 
 int Garnet::GetVersionMajor()
@@ -127,7 +127,7 @@ std::string Garnet::GetVersionString()
         WSACleanup();
     }
 
-#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+#elif defined(GNET_OS_UNIX)
 
     bool Garnet::Init(bool _printErrors)
     {
@@ -166,7 +166,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         err = "Failed to resolve hostname: '" + hostname + "'";
         if (printErrors) std::cout << err << "\n";
         if (success != nullptr) *success = false;
-        return "0.0.0.0";
+        return "";
     }
 
     char ipStr[INET_ADDRSTRLEN];
@@ -176,7 +176,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         err = "Failed to convert address to string";
         if (printErrors) std::cout << err << "\n";
         if (success != nullptr) *success = false;
-        return "0.0.0.0";
+        return "";
     }
 
     std::string ipAddr(ipStr);
@@ -189,7 +189,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
 
     Garnet::Socket::Socket()
     {
-        m_addr.IP = "0.0.0.0";
+        m_addr.host = "";
         m_addr.port = 0;
         m_proto = Protocol::Null;
         m_bSocket = INVALID_SOCKET;
@@ -200,7 +200,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
 
     Garnet::Socket::Socket(Protocol proto, bool* success)
     {
-        m_addr.IP = "0.0.0.0";
+        m_addr.host = "";
         m_addr.port = 0;
         m_proto = proto;
         m_bSocket = INVALID_SOCKET;
@@ -217,6 +217,8 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         else if (m_proto == Protocol::TCP)
         {
             m_bSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+            u_long mode = 0;
+            ioctlsocket(m_bSocket, FIONBIO, &mode);
             if (m_bSocket == INVALID_SOCKET)
             {
                 err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
@@ -305,7 +307,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
 
-        if (getaddrinfo(addr.IP.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+        if (getaddrinfo(addr.host.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
         {
             err = "Socket connect failed: failed to resolve host";
             if (printErrors) std::cout << err << "\n";
@@ -349,7 +351,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
 
-        if (getaddrinfo(to.IP.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+        if (getaddrinfo(to.host.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
         {
             err = "sendTo failed: failed to resolve host";
             if (printErrors) std::cout << err << "\n";
@@ -381,10 +383,10 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         m_open = false;
     }
 
-#elif defined(GNET_OS_LINUX) || defined(GNET_OS_MAC)
+#elif defined(GNET_OS_UNIX)
     Garnet::Socket::Socket()
     {
-        m_addr.IP = "0.0.0.0";
+        m_addr.host = "";
         m_addr.port = 0;
         m_proto = Protocol::Null;
         m_bSocket = -1;
@@ -395,7 +397,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
 
     Garnet::Socket::Socket(Protocol proto, bool* success)
     {
-        m_addr.IP = "0.0.0.0";
+        m_addr.host = "";
         m_addr.port = 0;
         m_proto = proto;
         m_bSocket = -1;
@@ -500,7 +502,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
 
-        if (getaddrinfo(addr.IP.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
+        if (getaddrinfo(addr.host.c_str(), std::to_string(addr.port).c_str(), &hints, &res) != 0)
         {
             err = "Socket connect failed: failed to resolve host";
             if (printErrors) std::cout << err << "\n";
@@ -544,7 +546,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_DGRAM;
 
-        if (getaddrinfo(to.IP.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
+        if (getaddrinfo(to.host.c_str(), std::to_string(to.port).c_str(), &hints, &res) != 0)
         {
             err = "sendTo failed: failed to resolve host";
             if (printErrors) std::cout << err << "\n";
@@ -595,7 +597,7 @@ bool Garnet::Socket::isOpen() const
 
 Garnet::ServerTCP::ServerTCP()
 {
-    m_addr.IP = "0.0.0.0";
+    m_addr.host = "";
     m_addr.port = 0;
     m_bufSize.exchange(256);
     m_nClients.exchange(0);
@@ -665,6 +667,13 @@ void Garnet::ServerTCP::close(bool* success)
     m_open.exchange(false);
     m_accepting.detach();
     for (std::thread& receiving : m_receivings) receiving.detach();
+    m_receivings.clear();
+    m_clientAddrsMtx.lock();
+    m_clientMapMtx.lock();
+    m_clientAddrs.clear();
+    m_clientMap.clear();
+    m_clientAddrsMtx.unlock();
+    m_clientMapMtx.unlock();
     if (success != nullptr) *success = true;
 }
 
@@ -683,17 +692,17 @@ int Garnet::ServerTCP::getNumClients() const
     return m_nClients.load();
 }
 
-const Garnet::Socket& Garnet::ServerTCP::getClientAcceptedSocket(Address clientAddr)
+Garnet::Socket& Garnet::ServerTCP::getClientAcceptedSocket(Address clientAddr)
 {
     return m_clientMap[clientAddr];
 }
 
-const std::list<Garnet::Address>& Garnet::ServerTCP::getClientAddresses()
+const std::list<Garnet::Address>& Garnet::ServerTCP::getClientAddresses() const
 {
     return m_clientAddrs;
 }
 
-const std::unordered_map<Garnet::Address, Garnet::Socket>& Garnet::ServerTCP::getClientMap()
+const std::unordered_map<Garnet::Address, Garnet::Socket>& Garnet::ServerTCP::getClientMap() const
 {
     return m_clientMap;
 }
@@ -779,7 +788,7 @@ void Garnet::ServerTCP::receive(Socket acceptedSocket)
 
 Garnet::ServerUDP::ServerUDP()
 {
-    m_addr.IP = "0.0.0.0";
+    m_addr.host = "";
     m_addr.port = 0;
     m_bufSize.exchange(256);
     m_open.exchange(false);
@@ -875,7 +884,14 @@ void Garnet::ServerUDP::receive()
     }
 }
 
-Garnet::ClientTCP::ClientTCP(bool* success)
+Garnet::ClientTCP::ClientTCP()
+{
+    m_bufSize.exchange(256);
+    m_pReceiveCallback = nullptr;
+    m_connected.exchange(false);
+}
+
+Garnet::ClientTCP::ClientTCP(char dummy, bool* success)
 {
     m_bufSize.exchange(256);
     m_pReceiveCallback = nullptr;
@@ -961,27 +977,19 @@ void Garnet::ClientTCP::receive()
     }
 }
 
-Garnet::ClientUDP::ClientUDP(bool* success)
+Garnet::ClientUDP::ClientUDP()
 {
     m_bufSize.exchange(256);
     m_pReceiveCallback = nullptr;
-    m_running.exchange(false);
-    m_socket = Socket(Protocol::UDP, success);
+    m_connected.exchange(false);
 }
 
-void Garnet::ClientUDP::start(bool* success)
+Garnet::ClientUDP::ClientUDP(char dummyPutAnything, bool* success)
 {
-    if (m_running.load())
-    {
-        err = "Failed to start ClientUDP: already running";
-        if (printErrors) std::cout << err << "\n";
-        if (success != nullptr) *success = false;
-        return;
-    }
-
-    m_receiving = std::thread(&Garnet::ClientUDP::receive, this);
-    m_running.exchange(true);
-    if (success != nullptr) *success = true;
+    m_bufSize.exchange(256);
+    m_pReceiveCallback = nullptr;
+    m_connected.exchange(true);
+    m_socket = Socket(Protocol::UDP, success);
 }
 
 void Garnet::ClientUDP::send(void* data, int size, Address addr, bool* success)
@@ -989,25 +997,25 @@ void Garnet::ClientUDP::send(void* data, int size, Address addr, bool* success)
     m_socket.sendTo(data, size, addr, success);
 }
 
-void Garnet::ClientUDP::stop(bool* success)
+void Garnet::ClientUDP::disconnect(bool* success)
 {
-    if (!m_running.load())
+    if (!m_connected.load())
     {
-        err = "Failed to stop ClientUDP: not started yet or already stopped";
+        err = "Failed to disconnect ClientUDP: not connected yet or already disconnected";
         if (printErrors) std::cout << err << "\n";
         if (success != nullptr) *success = false;
         return;
     }
 
     m_socket.close();
-    m_running.exchange(false);
+    m_connected.exchange(false);
     m_receiving.detach();
     if (success != nullptr) *success = true;
 }
 
-bool Garnet::ClientUDP::isRunning() const
+bool Garnet::ClientUDP::isConnected() const
 {
-    return m_running.load();
+    return m_connected.load();
 }
 
 int Garnet::ClientUDP::getBufferSize() const
@@ -1027,7 +1035,7 @@ void Garnet::ClientUDP::setReceiveCallback(void (*callback)(void* buffer, int bu
 
 void Garnet::ClientUDP::receive()
 {
-    while (m_running.load())
+    while (m_connected.load())
     {
         if (m_pReceiveCallback == nullptr) continue;
 
