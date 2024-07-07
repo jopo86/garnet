@@ -4,17 +4,17 @@
 
 using namespace Garnet;
 
-void receive(void* buffer, int bufferSize, int actualSize, Address clientAddr)
+void receive(void* data, int size, int actualSize, Address clientAddr)
 {
-    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((const char*)buffer);
+    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((char*)data);
     std::cout << msg << "\n";
     ServerTCP& server = *((ServerTCP*)GetUserPtr());
     for (const Address& addr : server.getClientAddresses())
     {
         if (clientAddr == addr) continue;
-        server.send((void*)msg.c_str(), msg.length(), addr);
+        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
     }
-    delete buffer;
+    delete data;
 }
 
 void clientConnected(Address clientAddr)
@@ -25,7 +25,7 @@ void clientConnected(Address clientAddr)
     for (const Address& addr : server.getClientAddresses())
     {
         if (clientAddr == addr) continue;
-        server.send((void*)msg.c_str(), msg.length(), addr);
+        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
     }
 }
 
@@ -37,7 +37,7 @@ void clientDisconnected(Address clientAddr)
     for (const Address& addr : server.getClientAddresses())
     {
         if (clientAddr == addr) continue;
-        server.send((void*)msg.c_str(), msg.length(), addr);
+        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
     }
 }
 

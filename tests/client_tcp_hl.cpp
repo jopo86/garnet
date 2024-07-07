@@ -4,10 +4,10 @@
 
 using namespace Garnet;
 
-void receive(void* buffer, int bufferSize, int actualSize)
+void receive(void* data, int size, int actualSize)
 {
-    std::cout << (const char*)buffer << "\n";
-    delete buffer;
+    std::cout << std::string((char*)data, size) << "\n";
+    delete data;
 }
 
 int main()
@@ -15,7 +15,7 @@ int main()
     std::cout << "CLIENT\n\n";
 
     Garnet::Init(true);
-    ClientTCP client;
+    ClientTCP client('c');
     client.connect(Address{
         .host = "127.0.0.1",
         .port = 55555

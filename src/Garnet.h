@@ -389,19 +389,19 @@ namespace Garnet
          !  THE USER IS RESPONSIBLE FOR DELETING THE BUFFER IF A CALLBACK IS USED.
             This function will be called whenever data is received from a client.
             @param callback The receive callback function. The callback function should adhere to the following signature:
-            void callback(void* data, int size, int actualSize, Address fromClientAddress);
-            - `data`: The data received. This should be stored in a buffer (ideally of `size` size) and deleted when done.
-            - `size`: The size of the given data in bytes.
-            - `actualSize`: The actual size of the data that was received from the client (regardless of `size`), in bytes.
+            `void callback(void* buffer, int size, int actualSize, Address fromClientAddress);`
+            - `buffer`: A buffer created (on the heap) by the library holding the data received. This should be deleted when done.
+            - `bufferSize`: The size of the given data in bytes.
+            - `actualSize`: The original size of the data that was sent from the client (regardless of `bufferSize`), in bytes.
             - `fromClientAddress`: The address of the client that sent the data.
          */
-        void setReceiveCallback(void (*callback)(void* data, int size, int actualSize, Address fromClientAddress));
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddress));
 
         /*
             @brief Sets the client connect callback function.
             This function will be called whenever a client connects to the server.
             @param callback The client connect callback function. The callback function should adhere to the following signature:
-            void callback(Address clientAddress);
+            `void callback(Address clientAddress);`
             - `clientAddress`: The address of the client that connected.
          */
         void setClientConnectCallback(void (*callback)(Address clientAddress));
@@ -410,7 +410,7 @@ namespace Garnet
             @brief Sets the client disconnect callback function.
             This function will be called whenever a client disconnects from the server.
             @param callback The client disconnect callback function. The callback function should adhere to the following signature:
-            void callback(Address clientAddress);
+            `void callback(Address clientAddress);`
             - `clientAddress`: The address of the client that disconnected.
          */
         void setClientDisconnectCallback(void (*callback)(Address clientAddress));
@@ -508,13 +508,13 @@ namespace Garnet
          !  THE USER IS RESPONSIBLE FOR DELETING THE BUFFER IF A CALLBACK IS USED.
             This function will be called whenever data is received from a client.
             @param callback The receive callback function. The callback function should adhere to the following signature:
-            void callback(void* data, int size, int actualSize, Address fromClientAddress);
-            - `data`: The data received. This should be stored in a buffer (ideally of `size` size) and deleted when done.
-            - `size`: The size of the given data in bytes.
-            - `actualSize`: The actual size of the data that was received from the client (regardless of `size`), in bytes.
+            `void callback(void* buffer, int size, int actualSize, Address fromClientAddress);`
+            - `buffer`: A buffer created (on the heap) by the library holding the data received. This should be deleted when done.
+            - `bufferSize`: The size of the given data in bytes.
+            - `actualSize`: The original size of the data that was sent from the client (regardless of `bufferSize`), in bytes.
             - `fromClientAddress`: The address of the client that sent the data.
          */
-        void setReceiveCallback(void (*callback)(void* data, int size, int actualSize, Address fromClientAddress));
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddress));
 
     private:
         Address m_addr;
@@ -596,12 +596,12 @@ namespace Garnet
          !  THE USER IS RESPONSIBLE FOR DELETING THE BUFFER IF A CALLBACK IS USED.
             This function will be called whenever data is received from the server.
             @param callback The receive callback function. The callback function should adhere to the following signature:
-            void callback(void* data, int size, int actualSize);
-            - `data`: The data received. This should be stored in a buffer (ideally of `size` size) and deleted when done.
-            - `size`: The size of the given data in bytes.
-            - `actualSize`: The actual size of the data that was received from the server (regardless of `size`), in bytes.
+            `void callback(void* buffer, int size, int actualSize);`
+            - `buffer`: A buffer created (on the heap) by the library holding the data received. This should be deleted when done.
+            - `bufferSize`: The size of the given data in bytes.
+            - `actualSize`: The original size of the data that was sent from the server (regardless of `bufferSize`), in bytes.
          */
-        void setReceiveCallback(void (*callback)(void* data, int size, int actualSize));
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize));
 
     private:
         Socket m_socket;
@@ -676,13 +676,13 @@ namespace Garnet
          !  THE USER IS RESPONSIBLE FOR DELETING THE BUFFER IF A CALLBACK IS USED.
             This function will be called whenever data is received from the server.
             @param callback The receive callback function. The callback function should adhere to the following signature:
-            void callback(void* data, int size, int actualSize, Address fromServerAddress);
-            - `data`: The data received. This should be stored in a buffer (ideally of `size` size) and deleted when done.
-            - `size`: The size of the given data in bytes.
-            - `actualSize`: The actual size of the data that was received from the server (regardless of `size`), in bytes.
+            `void callback(void* buffer, int size, int actualSize, Address fromServerAddress);`
+            - `buffer`: A buffer created (on the heap) by the library holding the data received. This should be deleted when done.
+            - `bufferSize`: The size of the given data in bytes.
+            - `actualSize`: The original size of the data that was sent from the server (regardless of `bufferSize`), in bytes.
             - `fromServerAddress`: The address of the server that sent the data.
          */
-        void setReceiveCallback(void (*callback)(void* data, int size, int actualSize, Address fromServerAddress));
+        void setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromServerAddress));
 
     private:
         Socket m_socket;

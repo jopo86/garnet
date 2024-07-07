@@ -99,16 +99,14 @@ std::string Garnet::GetVersionString()
 
     bool Garnet::Init(bool _printErrors)
     {
+        printErrors = _printErrors;
+
         if (wsaInitialized)
         {
             err = "Initialization failed: already initialized";
             if (printErrors) std::cout << err << "\n";
             return false;
         }
-
-        err = "Initialization failed: Garnet currently only supports Windows operating systems.";
-        if (printErrors) std::cout << err << "\n";
-        return false;
 
         if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
         {
@@ -118,7 +116,6 @@ std::string Garnet::GetVersionString()
         }
 
         wsaInitialized = true;
-        printErrors = _printErrors;
         return true;
     }
 
@@ -916,7 +913,11 @@ void Garnet::ClientTCP::connect(Address serverAddr, bool* success)
         m_connected.exchange(true);
         if (success != nullptr) *success = true;
     }
-    else if (success != nullptr) *success = false;
+    else
+    {
+        if (success != nullptr) *success = false;
+        return;
+    }
 
     m_receiving = std::thread(&Garnet::ClientTCP::receive, this);
 }
