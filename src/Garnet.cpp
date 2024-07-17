@@ -8,6 +8,10 @@
     WSADATA wsaData;
 #endif
 
+#ifdef GNET_OS_UNIX
+    typedef char byte;
+#endif
+
 std::string err;
 bool printErrors = false;
 void* userPtr = nullptr;
@@ -214,8 +218,6 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         else if (m_proto == Protocol::TCP)
         {
             m_bSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-            u_long mode = 0;
-            ioctlsocket(m_bSocket, FIONBIO, &mode);
             if (m_bSocket == INVALID_SOCKET)
             {
                 err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
@@ -234,6 +236,13 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
                 if (success != nullptr) *success = false;
                 return;
             }
+        }
+
+        int opt = 1;
+        if (setsockopt(m_bSocket, SOL_SOCKET, SO_REUSEADDR, (char*)&opt, sizeof(opt)) == SOCKET_ERROR)
+        {
+            err = "Socket creation incomplete: failed to set SO_REUSEADDR (not critical)";
+            if (printErrors) std::cout << err << "\n";
         }
 
         m_open = true;
@@ -431,6 +440,13 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
             }
         }
 
+        int opt = 1;
+        if (setsockopt(m_bSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
+        {
+            err = "Socket creation incomplete: failed to set SO_REUSEADDR (not critical)";
+            if (printErrors) std::cout << err << "\n";
+        }
+
         m_open = true;
         if (success != nullptr) *success = true;
     }
@@ -442,7 +458,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         m_bAddr = bAddr;
         m_bAddrSize = sizeof(bAddr);
 
-        if (::bind(m_bSocket, (SOCKADDR*)&bAddr, sizeof(bAddr)) == -1)
+        if (::bind(m_bSocket, (sockaddr*)&bAddr, sizeof(bAddr)) == -1)
         {
             err = "Socket binding failed. Error: " + std::string(strerror(errno));
             if (printErrors) std::cout << err << "\n";
@@ -472,8 +488,8 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
     {
         Socket retval;
 
-        ::SOCKET acceptSocket = -1;
-        acceptSocket = ::accept(m_bSocket, (SOCKADDR*)&retval.m_bAddr, &retval.m_bAddrSize);
+        int acceptSocket = -1;
+        acceptSocket = ::accept(m_bSocket, (sockaddr*)&retval.m_bAddr, &retval.m_bAddrSize);
         if (acceptSocket == -1)
         {
             err = "Socket accept failed. Error: " + std::string(strerror(errno));
@@ -510,7 +526,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         bAddr = *(sockaddr_in*)res->ai_addr;
         freeaddrinfo(res);
 
-        if (::connect(m_bSocket, (SOCKADDR*)&bAddr, sizeof(bAddr)) == -1)
+        if (::connect(m_bSocket, (sockaddr*)&bAddr, sizeof(bAddr)) == -1)
         {
             err = "Socket connect failed. Error: " + std::string(strerror(errno));
             if (printErrors) std::cout << err << "\n";
@@ -554,7 +570,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
         wsTo = *(sockaddr_in*)res->ai_addr;
         freeaddrinfo(res);
 
-        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo));
+        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (sockaddr*)&wsTo, sizeof(wsTo));
         if (success != nullptr) *success = nBytes != -1;
         return nBytes;
     }
@@ -562,8 +578,8 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
     int Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from, bool* success)
     {
         sockaddr_in wsFrom;
-        int wsFromSize = sizeof(wsFrom);
-        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, &wsFromSize);
+        socklen_t wsFromSize = sizeof(wsFrom);
+        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (sockaddr*)&wsFrom, &wsFromSize);
         if (success != nullptr) *success = nBytes != -1;
         if (from != nullptr && nBytes != -1) *from = addr_btog(wsFrom);
         return nBytes;
