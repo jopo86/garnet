@@ -21,7 +21,7 @@ void receive(void* buffer, int bufferSize, int actualSize, Address clientAddr)
         return;
     }
 
-    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((const char*)buffer);
+    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((const char*)buffer, actualSize);
     std::cout << msg << "\n";
     ServerUDP& server = *((ServerUDP*)GetUserPtr());
     for (const Address& addr : clientAddresses)

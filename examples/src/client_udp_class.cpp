@@ -12,7 +12,7 @@ void receive(void* buffer, int bufferSize, int actualSize, Address serverAddr)
         delete buffer;
         exit(0);
     }
-    std::cout << std::string((char*)buffer, bufferSize) << "\n";
+    std::cout << std::string((char*)buffer, actualSize) << "\n";
     delete buffer;
 }
 

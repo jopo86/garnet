@@ -6,14 +6,13 @@ using namespace Garnet;
 
 void receive(void* data, int size, int actualSize)
 {
-    std::cout << "recv";
     if (strcmp((char*)data, "Server: !quit") == 0)
     {
         std::cout << "Server disconnected.\n";
         delete data;
         exit(0);
     }
-    std::cout << std::string((char*)data, size) << "\n";
+    std::cout << std::string((char*)data, actualSize) << "\n";
     delete data;
 }
 

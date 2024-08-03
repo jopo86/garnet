@@ -6,7 +6,7 @@ using namespace Garnet;
 
 void receive(void* data, int size, int actualSize, Address clientAddr)
 {
-    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((char*)data);
+    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((char*)data, actualSize);
     std::cout << msg << "\n";
     ServerTCP& server = *((ServerTCP*)GetUserPtr());
     for (const Address& addr : server.getClientAddresses())
