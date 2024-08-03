@@ -16,6 +16,9 @@ std::string err;
 bool printErrors = false;
 void* userPtr = nullptr;
 
+// b = backend
+// g = garnet
+
 #ifdef GNET_OS_WINDOWS
 
     SOCKADDR_IN addr_gtob(Garnet::Address addr)
@@ -351,7 +354,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
 
     int Garnet::Socket::sendTo(void* data, int size, Address to, bool* success)
     {
-        SOCKADDR_IN wsTo;
+        SOCKADDR_IN bTo;
         struct addrinfo hints, *res;
         memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_INET;
@@ -365,21 +368,21 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
             return SOCKET_ERROR;
         }
 
-        wsTo = *(SOCKADDR_IN*)res->ai_addr;
+        bTo = *(SOCKADDR_IN*)res->ai_addr;
         freeaddrinfo(res);
 
-        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (SOCKADDR*)&wsTo, sizeof(wsTo));
+        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (SOCKADDR*)&bTo, sizeof(bTo));
         if (success != nullptr) *success = nBytes != SOCKET_ERROR;
         return nBytes;
     }
 
     int Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from, bool* success)
     {
-        SOCKADDR_IN wsFrom;
-        int wsFromSize = sizeof(wsFrom);
-        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&wsFrom, &wsFromSize);
+        SOCKADDR_IN bFrom;
+        int bFromSize = sizeof(bFrom);
+        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (SOCKADDR*)&bFrom, &bFromSize);
         if (success != nullptr) *success = nBytes != SOCKET_ERROR;
-        if (from != nullptr && nBytes != SOCKET_ERROR) *from = addr_btog(wsFrom);
+        if (from != nullptr && nBytes != SOCKET_ERROR) *from = addr_btog(bFrom);
         return nBytes;
     }
 
@@ -553,7 +556,7 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
 
     int Garnet::Socket::sendTo(void* data, int size, Address to, bool* success)
     {
-        sockaddr_in wsTo;
+        sockaddr_in bTo;
         struct addrinfo hints, *res;
         memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_INET;
@@ -567,21 +570,21 @@ std::string Garnet::HostnameToIP(const std::string& hostname, bool* success)
             return -1;
         }
 
-        wsTo = *(sockaddr_in*)res->ai_addr;
+        bTo = *(sockaddr_in*)res->ai_addr;
         freeaddrinfo(res);
 
-        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (sockaddr*)&wsTo, sizeof(wsTo));
+        int nBytes = ::sendto(m_bSocket, (char*)data, size, 0, (sockaddr*)&bTo, sizeof(bTo));
         if (success != nullptr) *success = nBytes != -1;
         return nBytes;
     }
 
     int Garnet::Socket::receiveFrom(void* buffer, int bufferSize, Address* from, bool* success)
     {
-        sockaddr_in wsFrom;
-        socklen_t wsFromSize = sizeof(wsFrom);
-        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (sockaddr*)&wsFrom, &wsFromSize);
+        sockaddr_in bFrom;
+        socklen_t bFromSize = sizeof(bFrom);
+        int nBytes = ::recvfrom(m_bSocket, (char*)buffer, bufferSize, 0, (sockaddr*)&bFrom, &bFromSize);
         if (success != nullptr) *success = nBytes != -1;
-        if (from != nullptr && nBytes != -1) *from = addr_btog(wsFrom);
+        if (from != nullptr && nBytes != -1) *from = addr_btog(bFrom);
         return nBytes;
     }
 
@@ -612,9 +615,9 @@ Garnet::ServerTCP::ServerTCP()
 {
     m_addr.host = "";
     m_addr.port = 0;
-    m_bufSize.exchange(256);
-    m_nClients.exchange(0);
-    m_open.exchange(false);
+    m_bufSize = 256;
+    m_nClients = 0;
+    m_open = false;
     m_pReceiveCallback = nullptr;
     m_pClientConnectCallback = nullptr;
     m_pClientDisconnectCallback = nullptr;
@@ -626,9 +629,9 @@ Garnet::ServerTCP::ServerTCP(Address addr, bool* success)
     bool successA, successB;
     m_socket = Socket(Protocol::TCP, &successA);
     m_socket.bind(addr, &successB);
-    m_bufSize.exchange(256);
-    m_nClients.exchange(0);
-    m_open.exchange(false);
+    m_bufSize = 256;
+    m_nClients = 0;
+    m_open = false;
     m_pReceiveCallback = nullptr;
     m_pClientConnectCallback = nullptr;
     m_pClientDisconnectCallback = nullptr;
@@ -638,7 +641,7 @@ Garnet::ServerTCP::ServerTCP(Address addr, bool* success)
 
 void Garnet::ServerTCP::open(int backlog, bool* success)
 {
-    if (m_open.load())
+    if (m_open)
     {
         err = "Failed to open ServerTCP: already open";
         if (printErrors) std::cout << err << "\n";
@@ -646,7 +649,7 @@ void Garnet::ServerTCP::open(int backlog, bool* success)
         return;
     }
 
-    m_open.exchange(true);
+    m_open = true;
     bool successA;
     m_socket.listen(backlog, &successA);
     if (success != nullptr) *success = successA;
@@ -654,7 +657,7 @@ void Garnet::ServerTCP::open(int backlog, bool* success)
     {
         m_accepting = std::thread(&Garnet::ServerTCP::accept, this);
     }
-    else m_open.exchange(false);
+    else m_open = false;
 }
 
 void Garnet::ServerTCP::send(void* data, int size, Address clientAddr, bool* success)
@@ -664,7 +667,7 @@ void Garnet::ServerTCP::send(void* data, int size, Address clientAddr, bool* suc
 
 void Garnet::ServerTCP::close(bool* success)
 {
-    if (!m_open.load())
+    if (!m_open)
     {
         err = "Failed to close ServerTCP: not open yet or already closed";
         if (printErrors) std::cout << err << "\n";
@@ -677,7 +680,7 @@ void Garnet::ServerTCP::close(bool* success)
     {
         m_clientMap[acceptedAddr].close();
     }
-    m_open.exchange(false);
+    m_open = false;
     m_accepting.detach();
     for (std::thread& receiving : m_receivings) receiving.detach();
     m_receivings.clear();
@@ -692,17 +695,17 @@ void Garnet::ServerTCP::close(bool* success)
 
 bool Garnet::ServerTCP::isOpen() const
 {
-    return m_open.load();
+    return m_open;
 }
 
 int Garnet::ServerTCP::getBufferSize() const
 {
-    return m_bufSize.load();
+    return m_bufSize;
 }
 
 int Garnet::ServerTCP::getNumClients() const
 {
-    return m_nClients.load();
+    return m_nClients;
 }
 
 Garnet::Socket& Garnet::ServerTCP::getClientAcceptedSocket(Address clientAddr)
@@ -722,7 +725,7 @@ const std::unordered_map<Garnet::Address, Garnet::Socket>& Garnet::ServerTCP::ge
 
 void Garnet::ServerTCP::setBufferSize(int size)
 {
-    m_bufSize.exchange(size);
+    m_bufSize = size;
 }
 
 void Garnet::ServerTCP::setReceiveCallback(void(*callback)(void* buffer, int bufferSize, int actualSize, Address fromClientAddr))
@@ -742,7 +745,7 @@ void Garnet::ServerTCP::setClientDisconnectCallback(void(*callback)(Address clie
 
 void Garnet::ServerTCP::accept()
 {
-    while (m_open.load())
+    while (m_open)
     {
         bool success;
         Socket acceptedSocket;
@@ -762,7 +765,7 @@ void Garnet::ServerTCP::accept()
             m_clientMapMtx.unlock();
 
             m_receivings.push_back(std::thread(&Garnet::ServerTCP::receive, this, acceptedSocket));
-            m_nClients.exchange(m_nClients.load() + 1);
+            m_nClients = m_nClients + 1;
 
             if (m_pClientConnectCallback != nullptr) m_pClientConnectCallback(acceptedSocket.getAddress());
         }
@@ -771,7 +774,7 @@ void Garnet::ServerTCP::accept()
 
 void Garnet::ServerTCP::receive(Socket acceptedSocket)
 {
-    while (m_open.load())
+    while (m_open)
     {
         if (m_pReceiveCallback == nullptr) continue;
 
@@ -787,7 +790,7 @@ void Garnet::ServerTCP::receive(Socket acceptedSocket)
             m_clientMap.erase(acceptedSocket.getAddress());
             m_clientAddrsMtx.unlock();
             m_clientMapMtx.unlock();
-            m_nClients.exchange(m_nClients.load() - 1);
+            m_nClients = m_nClients - 1;
 
             if (m_pClientDisconnectCallback != nullptr) m_pClientDisconnectCallback(acceptedSocket.getAddress());
 
@@ -803,8 +806,8 @@ Garnet::ServerUDP::ServerUDP()
 {
     m_addr.host = "";
     m_addr.port = 0;
-    m_bufSize.exchange(256);
-    m_open.exchange(false);
+    m_bufSize = 256;
+    m_open = false;
     m_pReceiveCallback = nullptr;
 }
 
@@ -814,8 +817,8 @@ Garnet::ServerUDP::ServerUDP(Address addr, bool* success)
     bool successA, successB;
     m_socket = Socket(Protocol::UDP, &successA);
     m_socket.bind(addr, &successB);
-    m_bufSize.exchange(256);
-    m_open.exchange(false);
+    m_bufSize = 256;
+    m_open = false;
     m_pReceiveCallback = nullptr;
 
     if (success != nullptr) *success = successA && successB;
@@ -823,7 +826,7 @@ Garnet::ServerUDP::ServerUDP(Address addr, bool* success)
 
 void Garnet::ServerUDP::open(bool* success)
 {
-    if (m_open.load())
+    if (m_open)
     {
         err = "Failed to open ServerUDP: already open";
         if (printErrors) std::cout << err << "\n";
@@ -831,7 +834,7 @@ void Garnet::ServerUDP::open(bool* success)
         return;
     }
 
-    m_open.exchange(true);
+    m_open = true;
     m_receiving = std::thread(&Garnet::ServerUDP::receive, this);
     if (success != nullptr) *success = true;
 }
@@ -843,7 +846,7 @@ void Garnet::ServerUDP::send(void* data, int size, Address addr, bool* success)
 
 void Garnet::ServerUDP::close(bool* success)
 {
-    if (!m_open.load())
+    if (!m_open)
     {
         err = "Failed to close ServerUDP: not open yet or already closed";
         if (printErrors) std::cout << err << "\n";
@@ -852,24 +855,24 @@ void Garnet::ServerUDP::close(bool* success)
     }
 
     m_socket.close();
-    m_open.exchange(false);
+    m_open = false;
     m_receiving.detach();
     if (success != nullptr) *success = true;
 }
 
 bool Garnet::ServerUDP::isOpen() const
 {
-    return m_open.load();
+    return m_open;
 }
 
 int Garnet::ServerUDP::getBufferSize() const
 {
-    return m_bufSize.load();
+    return m_bufSize;
 }
 
 void Garnet::ServerUDP::setBufferSize(int size)
 {
-    m_bufSize.exchange(size);
+    m_bufSize = size;
 }
 
 void Garnet::ServerUDP::setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromAddr))
@@ -879,7 +882,7 @@ void Garnet::ServerUDP::setReceiveCallback(void (*callback)(void* buffer, int bu
 
 void Garnet::ServerUDP::receive()
 {
-    while (m_open.load())
+    while (m_open)
     {
         if (m_pReceiveCallback == nullptr) continue;
 
@@ -899,22 +902,22 @@ void Garnet::ServerUDP::receive()
 
 Garnet::ClientTCP::ClientTCP()
 {
-    m_bufSize.exchange(256);
+    m_bufSize = 256;
     m_pReceiveCallback = nullptr;
-    m_connected.exchange(false);
+    m_connected = false;
 }
 
 Garnet::ClientTCP::ClientTCP(char dummy, bool* success)
 {
-    m_bufSize.exchange(256);
+    m_bufSize = 256;
     m_pReceiveCallback = nullptr;
-    m_connected.exchange(false);
+    m_connected = false;
     m_socket = Socket(Protocol::TCP, success);
 }
 
 void Garnet::ClientTCP::connect(Address serverAddr, bool* success)
 {
-    if (m_connected.load())
+    if (m_connected)
     {
         err = "Failed to connect ClientTCP: already connected";
         if (printErrors) std::cout << err << "\n";
@@ -926,7 +929,7 @@ void Garnet::ClientTCP::connect(Address serverAddr, bool* success)
     m_socket.connect(serverAddr, &successA);
     if (successA)
     {
-        m_connected.exchange(true);
+        m_connected = true;
         if (success != nullptr) *success = true;
     }
     else
@@ -945,7 +948,7 @@ void Garnet::ClientTCP::send(void* data, int size, bool* success)
 
 void Garnet::ClientTCP::disconnect(bool* success)
 {
-    if (!m_connected.load())
+    if (!m_connected)
     {
         err = "Failed to disconnect ClientTCP: not connected yet or already disconnected";
         if (printErrors) std::cout << err << "\n";
@@ -953,25 +956,25 @@ void Garnet::ClientTCP::disconnect(bool* success)
         return;
     }
     
+    m_connected = false;
     m_socket.close();
-    m_connected.exchange(false);
     m_receiving.detach();
     if (success != nullptr) *success = true;
 }
 
 bool Garnet::ClientTCP::isConnected() const
 {
-    return m_connected.load();
+    return m_connected;
 }
 
 int Garnet::ClientTCP::getBufferSize() const
 {
-    return m_bufSize.load();
+    return m_bufSize;
 }
 
 void Garnet::ClientTCP::setBufferSize(int bufferSize)
 {
-    m_bufSize.exchange(bufferSize);
+    m_bufSize = bufferSize;
 }
 
 void Garnet::ClientTCP::setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize))
@@ -981,7 +984,7 @@ void Garnet::ClientTCP::setReceiveCallback(void (*callback)(void* buffer, int bu
 
 void Garnet::ClientTCP::receive()
 {
-    while (m_connected.load())
+    while (m_connected)
     {
         if (m_pReceiveCallback == nullptr) continue;
 
@@ -996,17 +999,19 @@ void Garnet::ClientTCP::receive()
 
 Garnet::ClientUDP::ClientUDP()
 {
-    m_bufSize.exchange(256);
+    m_bufSize = 256;
     m_pReceiveCallback = nullptr;
-    m_connected.exchange(false);
+    m_connected = false;
 }
 
-Garnet::ClientUDP::ClientUDP(char dummyPutAnything, bool* success)
+Garnet::ClientUDP::ClientUDP(char dummy, bool* success)
 {
-    m_bufSize.exchange(256);
+    m_bufSize = 256;
     m_pReceiveCallback = nullptr;
-    m_connected.exchange(true);
+    m_connected = true;
     m_socket = Socket(Protocol::UDP, success);
+
+    m_receiving = std::thread(&Garnet::ClientUDP::receive, this);
 }
 
 void Garnet::ClientUDP::send(void* data, int size, Address addr, bool* success)
@@ -1016,7 +1021,7 @@ void Garnet::ClientUDP::send(void* data, int size, Address addr, bool* success)
 
 void Garnet::ClientUDP::disconnect(bool* success)
 {
-    if (!m_connected.load())
+    if (!m_connected)
     {
         err = "Failed to disconnect ClientUDP: not connected yet or already disconnected";
         if (printErrors) std::cout << err << "\n";
@@ -1024,25 +1029,25 @@ void Garnet::ClientUDP::disconnect(bool* success)
         return;
     }
 
+    m_connected = false;
     m_socket.close();
-    m_connected.exchange(false);
     m_receiving.detach();
     if (success != nullptr) *success = true;
 }
 
 bool Garnet::ClientUDP::isConnected() const
 {
-    return m_connected.load();
+    return m_connected;
 }
 
 int Garnet::ClientUDP::getBufferSize() const
 {
-    return m_bufSize.load();
+    return m_bufSize;
 }
 
 void Garnet::ClientUDP::setBufferSize(int size)
 {
-    m_bufSize.exchange(size);
+    m_bufSize = size;
 }
 
 void Garnet::ClientUDP::setReceiveCallback(void (*callback)(void* buffer, int bufferSize, int actualSize, Address fromServerAddress))
@@ -1052,7 +1057,7 @@ void Garnet::ClientUDP::setReceiveCallback(void (*callback)(void* buffer, int bu
 
 void Garnet::ClientUDP::receive()
 {
-    while (m_connected.load())
+    while (m_connected)
     {
         if (m_pReceiveCallback == nullptr) continue;
 

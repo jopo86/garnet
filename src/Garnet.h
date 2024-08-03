@@ -9,13 +9,13 @@
 #include <vector>
 #include <list>
 
-#define GNET_VERSION_MAJOR  0
+#define GNET_VERSION_MAJOR  1
 #define GNET_VERSION_MINOR  0
-#define GNET_VERSION_PATCH  2
+#define GNET_VERSION_PATCH  0
 
-#define GNET_DEV            true
+#define GNET_DEV            false
 #define GNET_ALPHA          false
-#define GNET_BETA           false
+#define GNET_BETA           true
 #define GNET_STABLE         false
 
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
@@ -131,8 +131,8 @@ namespace Garnet
      */
     struct Address
     {
-        std::string host;   // The IP address or hostname / domain name.
-        ushort port;        // The port number.
+        std::string host = "";   // The IP address or hostname / domain name.
+        ushort port = 0;        // The port number.
 
         void operator=(const Address& other);
         bool operator==(const Address& other) const;
