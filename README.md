@@ -5,7 +5,7 @@ A small, cross-platform C++ networking library providing both high-level server/
 ## Download
 There are pre-compiled binaries for Windows MinGW64 and Linux, but they are not guaranteed to work, so if they don't for you, you can compile yourself using CMake. See [Build](#build) for build instructions.
 
-[Latest Release (1.0.0-beta)](https://github.com/jopo86/garnet/releases/tag/v1.0.0-beta)
+[Latest Release (1.0.0-beta)](https://github.com/jopo86/garnet/releases/tag/v1.0.0-beta)  
 [All Releases](https://github.com/jopo86/garnet/releases)
 
 ## Features
@@ -51,4 +51,4 @@ cmake --build .
 
 Now, in the build directory, you should have a file named `libgarnet.a` (or `garnet.lib`, depending on how you generated your CMake files). This is your compiled library file, and you can now link against this library (and include `Garnet.h`) to use Garnet in other projects!  
 
-To build examples, head into `CMakeLists.txt` (located inside the root directory from where you cloned to), and where it says `set(BUILD_EXAMPLES OFF)`, just switch that `OFF` to `ON`.
+To build examples, head into `CMakeLists.txt` (located inside the root directory from where you cloned to), and where it says `set(BUILD_EXAMPLES OFF)`, just switch that `OFF` to `ON` and rerun `cmake --build .` (or repeat steps 2-4 from the `examples` dir instead of the root).  
