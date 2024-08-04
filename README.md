@@ -1,6 +1,8 @@
 # ![Garnet Logo](logo.png)
 # Garnet
-A small, cross-platform C++ networking library providing both high-level server/client architecture and low-level socket operations.  
+A small, cross-platform C++ networking library providing both high-level server/client architecture and low-level socket operations using TCP or UDP.  
+
+See the [Wiki](https://github.com/jopo86/garnet/wiki) for usage guides & examples.  
 
 ## Download
 There are pre-compiled binaries for Windows MinGW64 and Linux, but they are not guaranteed to work, so if they don't for you, you can compile yourself using CMake. See [Build](#build) for build instructions.
@@ -16,12 +18,12 @@ There are pre-compiled binaries for Windows MinGW64 and Linux, but they are not 
 
 - `ServerTCP` and `ServerUDP` classes
     - High-level cross-platform basic server functionality
-    - Multithreaded to allow for concurrent accepting / receiving
+    - Multithreaded to allow for concurrent accepting / receiving & main thread
     - Callback-based structure (client connect/disconnect callback (TCP only), receive callback)
 
 - `ClientTCP` and `ClientUDP` classes
     - High-level cross-platform basic client functionality
-    - Multithreaded to allow for concurrent receiving
+    - Multithreaded to allow for concurrent receiving & main thread
     - Callback-based structure (receive callback)
 
 ## Build
