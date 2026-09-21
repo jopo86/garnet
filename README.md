@@ -16,12 +16,12 @@ There are pre-compiled binaries for Windows MinGW64 and Linux, but they are not 
     - More intuitive structure for sockets than with WSA or POSIX but with the same functionalities
     - Native support for TCP or UDP
 
-- `ServerTCP` and `ServerUDP` classes
+- `ServerTcp` and `ServerUdp` classes
     - High-level cross-platform basic server functionality
     - Multithreaded to allow for concurrent accepting / receiving & main thread
     - Callback-based structure (client connect/disconnect callback (TCP only), receive callback)
 
-- `ClientTCP` and `ClientUDP` classes
+- `ClientTcp` and `ClientUdp` classes
     - High-level cross-platform basic client functionality
     - Multithreaded to allow for concurrent receiving & main thread
     - Callback-based structure (receive callback)
@@ -51,6 +51,6 @@ cmake -G "MinGW Makefiles" ../
 cmake --build .
 ```  
 
-Now, in the build directory, you should have a file named `libgarnet.a` (or `garnet.lib`, depending on how you generated your CMake files). This is your compiled library file, and you can now link against this library (and include `Garnet.h`) to use Garnet in other projects!  
+Now, in the build directory, you should have a file named `libgarnet.a` (or `garnet.lib`, depending on how you generated your CMake files). This is your compiled library file, and you can now link against this library (and include `garnet.h`) to use Garnet in other projects!  
 
 To build examples, head into `CMakeLists.txt` (located inside the root directory from where you cloned to), and where it says `set(BUILD_EXAMPLES OFF)`, just switch that `OFF` to `ON` and rerun `cmake --build .` (or repeat steps 2-4 from the `examples` dir instead of the root).  

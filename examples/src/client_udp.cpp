@@ -1,18 +1,17 @@
 #include <iostream>
 
-#include <Garnet.h>
+#include <garnet.h>
 
-using namespace Garnet;
+using namespace garnet;
 
 int main()
 {
     std::cout << "CLIENT\n\n";
 
-    Garnet::Init(true);
-    Socket clientSocket(Protocol::UDP);
-    float start = time(nullptr);
+    garnet::init(true);
+    Socket client_socket(Protocol::Udp);
 
-    Address serverAddr{ .host = "127.0.0.1", .port = 55555 };
+    Address server_addr{ .host = "127.0.0.1", .port = 55555 };
 
     std::cout << "CHAT STARTED ----- enter '!quit' to exit\n\n";
     char buffer[256];
@@ -21,7 +20,7 @@ int main()
         std::cout << "Client: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!clientSocket.sendTo(buffer, sizeof(buffer), serverAddr)) std::cout << "MESSAGE NOT SENT\n";
+        if (!client_socket.send_to(buffer, sizeof(buffer), server_addr)) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Client left the chat.\n";
@@ -29,25 +28,25 @@ int main()
 		}
 
         bool received = false;
-        bool shouldBreak = false;
+        bool should_break = false;
         while (!received)
         {
-            received = clientSocket.receiveFrom(buffer, sizeof(buffer), nullptr);
+            received = client_socket.receive_from(buffer, sizeof(buffer), nullptr);
             if (received)
             {
                 if (strcmp(buffer, "!quit") == 0)
                 {
                     std::cout << "Server left the chat.\n";
-                    shouldBreak = true;
+                    should_break = true;
                     break;
                 }
                 else std::cout << "Server: " << buffer << "\n";
             }
         }
-        if (shouldBreak) break;
+        if (should_break) break;
     }
 
-    clientSocket.close();
-    Garnet::Terminate();
+    client_socket.close();
+    garnet::terminate();
     return 0;
 }

@@ -1,17 +1,17 @@
 #include <iostream>
 
-#include <Garnet.h>
+#include <garnet.h>
 
-using namespace Garnet;
+using namespace garnet;
 
 int main()
 {
     std::cout << "CLIENT\n\n";
 
-    Garnet::Init(true);
-    Socket clientSocket(Protocol::TCP);
+    garnet::init(true);
+    Socket client_socket(Protocol::Tcp);
     std::cout << "Connecting to server...\n";
-    clientSocket.connect(Address{
+    client_socket.connect(Address{
         .host = "127.0.0.1",
         .port = 55555
     });
@@ -23,14 +23,14 @@ int main()
         std::cout << "Client: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!clientSocket.send(buffer, sizeof(buffer))) std::cout << "MESSAGE NOT SENT\n";
+        if (!client_socket.send(buffer, sizeof(buffer))) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Client left the chat.\n";
 			break;
 		}
 
-        clientSocket.receive(buffer, sizeof(buffer));
+        client_socket.receive(buffer, sizeof(buffer));
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Server left the chat.\n";
@@ -39,7 +39,7 @@ int main()
         else std::cout << "Server: " << buffer << "\n";
     }
 
-    clientSocket.close();
-    Garnet::Terminate();
+    client_socket.close();
+    garnet::terminate();
     return 0;
 }

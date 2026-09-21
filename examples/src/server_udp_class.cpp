@@ -1,59 +1,59 @@
 #include <iostream>
 
-#include <Garnet.h>
+#include <garnet.h>
 
-using namespace Garnet;
+using namespace garnet;
 
-std::vector<Address> clientAddresses = {};
+std::vector<Address> client_addresses = {};
 
-void receive(void* buffer, int bufferSize, int actualSize, Address clientAddr)
+void receive(void* buffer, int buffer_size, int actual_size, Address client_addr)
 {
-    if (std::find(clientAddresses.begin(), clientAddresses.end(), clientAddr) == clientAddresses.end())
+    if (std::find(client_addresses.begin(), client_addresses.end(), client_addr) == client_addresses.end())
     {
-        clientAddresses.push_back(clientAddr);
+        client_addresses.push_back(client_addr);
     }
 
     if (strcmp((const char*)buffer, "!quit") == 0)
     {
-        std::cout << "Client (" << clientAddr.host << ":" << clientAddr.port << ") left the chat.\n";
-        clientAddresses.erase(std::remove(clientAddresses.begin(), clientAddresses.end(), clientAddr), clientAddresses.end());
-        delete buffer;
+        std::cout << "Client (" << client_addr.host << ":" << client_addr.port << ") left the chat.\n";
+        client_addresses.erase(std::remove(client_addresses.begin(), client_addresses.end(), client_addr), client_addresses.end());
+        delete[] (char*)buffer;
         return;
     }
 
-    std::string msg = "Client (" + clientAddr.host + ":" + std::to_string(clientAddr.port) + "): " + std::string((const char*)buffer, actualSize);
+    std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + "): " + std::string((const char*)buffer, actual_size);
     std::cout << msg << "\n";
-    ServerUDP& server = *((ServerUDP*)GetUserPtr());
-    for (const Address& addr : clientAddresses)
+    ServerUdp& server = *((ServerUdp*)get_user_ptr());
+    for (const Address& addr : client_addresses)
     {
-        if (clientAddr == addr) continue;
+        if (client_addr == addr) continue;
         server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
     }
 
-    delete buffer;
+    delete[] (char*)buffer;
 }
 
 int main()
 {
     std::cout << "SERVER\n\n";
 
-    Garnet::Init(true);
-    ServerUDP server(Address{
+    garnet::init(true);
+    ServerUdp server(Address{
         .host = "127.0.0.1",
         .port = 55555
     });
-    SetUserPtr(&server);
+    set_user_ptr(&server);
 
-    server.setReceiveCallback(receive);
+    server.set_receive_callback(receive);
     server.open();
 
     char buffer[256] = "Server: ";
-    while (server.isOpen())
+    while (server.is_open())
     {
 
         std::cin.getline(buffer + 8, sizeof(buffer) - 8);
 
-        for (Address addr : clientAddresses)
+        for (Address addr : client_addresses)
         {
             server.send(buffer, sizeof(buffer), addr);
         }
@@ -62,7 +62,7 @@ int main()
     }
 
     server.close();
-    Garnet::Terminate();
+    garnet::terminate();
 
     return 0;
 }

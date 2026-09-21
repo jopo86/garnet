@@ -12,8 +12,6 @@ project(Garnet VERSION 1.0.0)
 
 file(GLOB SOURCE_FILES ${SOURCE_DIR}/*.cpp)
 
-add_compile_options(-Wno-delete-incomplete)
-
 add_library(garnet ${SOURCE_FILES})
 
 if(BUILD_EXAMPLES)

@@ -1,36 +1,36 @@
 #include <iostream>
 
-#include <Garnet.h>
+#include <garnet.h>
 
-using namespace Garnet;
+using namespace garnet;
 
-void receive(void* data, int size, int actualSize)
+void receive(void* data, int size, int actual_size)
 {
     if (strcmp((char*)data, "Server: !quit") == 0)
     {
         std::cout << "Server disconnected.\n";
-        delete data;
+        delete[] (char*)data;
         exit(0);
     }
-    std::cout << std::string((char*)data, actualSize) << "\n";
-    delete data;
+    std::cout << std::string((char*)data, actual_size) << "\n";
+    delete[] (char*)data;
 }
 
 int main()
 {
     std::cout << "CLIENT\n\n";
 
-    Garnet::Init(true);
-    ClientTCP client('c');
+    garnet::init(true);
+    ClientTcp client('c');
     client.connect(Address{
         .host = "127.0.0.1",
         .port = 55555
     });
-    SetUserPtr(&client);
-    client.setReceiveCallback(receive);
+    set_user_ptr(&client);
+    client.set_receive_callback(receive);
 
     char buffer[256] = "";
-    while (client.isConnected())
+    while (client.is_connected())
     {
         std::cin.getline(buffer, sizeof(buffer));
 
@@ -39,7 +39,7 @@ int main()
     }
 
     client.disconnect();
-    Garnet::Terminate();
+    garnet::terminate();
 
     return 0;
 }

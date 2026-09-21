@@ -1,29 +1,29 @@
 #include <iostream>
 
-#include <Garnet.h>
+#include <garnet.h>
 
-using namespace Garnet;
+using namespace garnet;
 
 int main()
 {
     std::cout << "SERVER\n\n";
 
-    Garnet::Init(true);
-    Socket serverSocket(Protocol::TCP);
-    serverSocket.bind(Address{
+    garnet::init(true);
+    Socket server_socket(Protocol::Tcp);
+    server_socket.bind(Address{
         .host = "127.0.0.1",
         .port = 55555
     });
-    serverSocket.listen(5);
+    server_socket.listen(5);
     std::cout << "Listening for connection...\n";
-    Socket acceptSocket = serverSocket.accept();
-    std::cout << "Connected with client (IP: " << acceptSocket.getAddress().host << ", port " << acceptSocket.getAddress().port << ")\n\n";
+    Socket accept_socket = server_socket.accept();
+    std::cout << "Connected with client (IP: " << accept_socket.get_address().host << ", port " << accept_socket.get_address().port << ")\n\n";
 
     std::cout << "CHAT STARTED ----- enter '!quit' to exit\n\n";
     char buffer[256];
     while (true)
     {
-        acceptSocket.receive(buffer, sizeof(buffer));
+        accept_socket.receive(buffer, sizeof(buffer));
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Client left the chat.\n";
@@ -34,7 +34,7 @@ int main()
         std::cout << "Server: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!acceptSocket.send(buffer, sizeof(buffer))) std::cout << "MESSAGE NOT SENT\n";
+        if (!accept_socket.send(buffer, sizeof(buffer))) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Server left the chat.\n";
@@ -42,8 +42,8 @@ int main()
 		}
     }
 
-    serverSocket.close();
-    acceptSocket.close();
-    Garnet::Terminate();
+    server_socket.close();
+    accept_socket.close();
+    garnet::terminate();
     return 0;
 }
