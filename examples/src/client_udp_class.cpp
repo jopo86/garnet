@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 
 using namespace garnet;
 
@@ -22,7 +22,7 @@ int main()
     std::cout << "CLIENT (server won't see you until you send a message)\n\n";
 
     garnet::init(true);
-    ClientUdp client('c');
+    ClientUdp client;
     set_user_ptr(&client);
     client.set_receive_callback(receive);
 
@@ -31,7 +31,7 @@ int main()
     {
         std::cin.getline(buffer, sizeof(buffer));
 
-        client.send(buffer, strlen(buffer),Address{ .host = "127.0.0.1", .port = 55555 } );
+        client.send(buffer, (int)strlen(buffer),Address{ .host = "127.0.0.1", .port = 55555 } );
         if (strcmp(buffer, "!quit") == 0) break;
     }
 

@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 
 using namespace garnet;
 
@@ -38,7 +38,7 @@ int main()
         std::cout << "Server: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!server_socket.send_to(buffer, strlen(buffer) + 1, client_addr)) std::cout << "MESSAGE NOT SENT\n";
+        if (!server_socket.send_to(buffer, (int)strlen(buffer) + 1, client_addr)) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Server left the chat.\n";

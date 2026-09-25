@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 
 using namespace garnet;
 
@@ -12,7 +12,7 @@ void receive(void* data, int size, int actual_size, Address client_addr)
     for (const Address& addr : server.get_client_addresses())
     {
         if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
+        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
     }
     delete[] (char*)data;
 }
@@ -25,7 +25,7 @@ void client_connected(Address client_addr)
     for (const Address& addr : server.get_client_addresses())
     {
         if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
+        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
     }
 }
 
@@ -37,7 +37,7 @@ void client_disconnected(Address client_addr)
     for (const Address& addr : server.get_client_addresses())
     {
         if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
+        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
     }
 }
 
@@ -64,7 +64,7 @@ int main()
 
         for (const Address& addr : server.get_client_addresses())
         {
-            server.send(buffer, strlen(buffer), addr);
+            server.send(buffer, (int)strlen(buffer), addr);
         }
 
         if (strcmp(buffer, "Server: !quit") == 0) break;

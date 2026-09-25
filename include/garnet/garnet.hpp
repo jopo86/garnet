@@ -308,17 +308,14 @@ namespace garnet
     {
     public:
         /*
-            @brief Creates an empty TCP server.
-            Should not be actually used to create or manage a server.
-         */
-        ServerTcp();
-
-        /*
             @brief Creates a TCP server with the specified server address.
             @param server_address The address of the server.
             @param success A pointer to a boolean to store whether the server was successfully created.
          */
-        ServerTcp(Address server_address, bool* success = nullptr);
+        explicit ServerTcp(Address server_address, bool* success = nullptr);
+
+        ServerTcp(const ServerTcp&) = delete;
+        ServerTcp& operator=(const ServerTcp&) = delete;
 
         /*
             @brief Opens the server for incoming connections.
@@ -447,17 +444,14 @@ namespace garnet
     {
     public:
         /*
-            @brief Creates an empty UDP server.
-            Should not be actually used to create or manage a server.
-         */
-        ServerUdp();
-
-        /*
             @brief Creates a UDP server with the specified server address.
             @param server_address The address of the server.
             @param success A pointer to a boolean to store whether the server was successfully created.
          */
-        ServerUdp(Address server_address, bool* success = nullptr);
+        explicit ServerUdp(Address server_address, bool* success = nullptr);
+
+        ServerUdp(const ServerUdp&) = delete;
+        ServerUdp& operator=(const ServerUdp&) = delete;
 
         /*
             @brief Opens the server for incoming connections.
@@ -537,16 +531,13 @@ namespace garnet
     {
     public:
         /*
-            @brief Creates an empty TCP client.
-            Should not be actually used to create or manage a client.
-         */
-        ClientTcp();
-        /*
-            @brief Creates a TCP client.
-            @param dummy_put_anything A dummy parameter to differentiate this constructor from the default constructor. Put anything!
+            @brief Creates a TCP client. Call `connect()` to connect it to a server.
             @param success A pointer to a boolean to store whether the client was successfully created.
          */
-        ClientTcp(char dummy_put_anything, bool* success = nullptr);
+        explicit ClientTcp(bool* success = nullptr);
+
+        ClientTcp(const ClientTcp&) = delete;
+        ClientTcp& operator=(const ClientTcp&) = delete;
 
         /*
             @brief Connects the client to the specified server address.
@@ -626,17 +617,13 @@ namespace garnet
     {
     public:
         /*
-            @brief Creates an empty UDP client.
-            Should not be actually used to create or manage a client.
-         */
-        ClientUdp();
-
-        /*
-            @brief Creates a UDP client.
-            @param dummy_put_anything A dummy parameter to differentiate this constructor from the default constructor. Put anything!
+            @brief Creates a UDP client and starts its receiving thread.
             @param success A pointer to a boolean to store whether the client was successfully created.
          */
-        ClientUdp(char dummy_put_anything, bool* success = nullptr);
+        explicit ClientUdp(bool* success = nullptr);
+
+        ClientUdp(const ClientUdp&) = delete;
+        ClientUdp& operator=(const ClientUdp&) = delete;
 
         /*
             @brief Sends data to the server.
@@ -655,7 +642,7 @@ namespace garnet
 
         /*
             @brief Checks whether the client is connected.
-            The client is considered 'connected' if the constructor with the dummy parameter was used and `disconnect()` was not called.
+            The client is considered 'connected' from construction until `disconnect()` is called.
             @return True if the client is connected, false otherwise.
          */
         bool is_connected() const;

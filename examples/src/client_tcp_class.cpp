@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 
 using namespace garnet;
 
@@ -22,7 +22,7 @@ int main()
     std::cout << "CLIENT\n\n";
 
     garnet::init(true);
-    ClientTcp client('c');
+    ClientTcp client;
     client.connect(Address{
         .host = "127.0.0.1",
         .port = 55555
@@ -36,7 +36,7 @@ int main()
         std::cin.getline(buffer, sizeof(buffer));
 
         if (strcmp(buffer, "!quit") == 0) break;
-        client.send(buffer, strlen(buffer));
+        client.send(buffer, (int)strlen(buffer));
     }
 
     client.disconnect();

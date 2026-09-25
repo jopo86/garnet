@@ -45,14 +45,14 @@ The examples are built by default and placed in `build/examples/`. To build only
 
 ## Using Garnet in your project
 
-Add `src/` to your include path, include `garnet.h`, and link against the built library. On Windows, also link `ws2_32`.
+Add `include/` to your include path, include `garnet.hpp`, and link against the built library. On Windows, also link `ws2_32`.
 
 Every program must call `garnet::init()` before any other Garnet function and `garnet::terminate()` when it's finished. On Windows these start up and shut down Winsock. On Unix they do nothing, but calling them keeps the code portable.
 
 ### Quick start: TCP echo server
 
 ```cpp
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 #include <iostream>
 #include <string>
 
@@ -86,7 +86,7 @@ int main()
 ### Quick start: TCP client
 
 ```cpp
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 #include <iostream>
 #include <string>
 
@@ -100,7 +100,7 @@ int main()
 {
     garnet::init(true);
 
-    garnet::ClientTcp client('c'); // the argument is a placeholder that selects the initializing constructor
+    garnet::ClientTcp client;
     client.set_receive_callback(on_receive);
     client.connect(garnet::Address{ .host = "127.0.0.1", .port = 55555 });
 
@@ -123,7 +123,7 @@ int main()
 | `ServerUdp` | UDP server with a background receive thread and a receive callback that includes the sender's address. |
 | `ClientUdp` | UDP client with a background receive thread. Messages can be sent to any address. |
 
-Every public function is documented in [`src/garnet.h`](src/garnet.h). See the [Wiki](https://github.com/jopo86/garnet/wiki) for longer guides.
+Every public function is documented in [`src/garnet.hpp`](src/garnet.hpp). See the [Wiki](https://github.com/jopo86/garnet/wiki) for longer guides.
 
 ### Receive callbacks
 

@@ -1,4 +1,4 @@
-#include "garnet.h"
+#include <garnet/garnet.hpp>
 
 #include <iostream>
 #include <vector>
@@ -660,18 +660,6 @@ static int receive_message(garnet::Socket& socket, char* buffer, int buffer_size
     return (int)len;
 }
 
-garnet::ServerTcp::ServerTcp()
-{
-    m_addr.host = "";
-    m_addr.port = 0;
-    m_buf_size = 256;
-    m_num_clients = 0;
-    m_open = false;
-    m_receive_callback = nullptr;
-    m_client_connect_callback = nullptr;
-    m_client_disconnect_callback = nullptr;
-}
-
 garnet::ServerTcp::ServerTcp(Address addr, bool* success)
 {
     m_addr = addr;
@@ -851,15 +839,6 @@ void garnet::ServerTcp::receive(Socket accepted_socket)
     }
 }
 
-garnet::ServerUdp::ServerUdp()
-{
-    m_addr.host = "";
-    m_addr.port = 0;
-    m_buf_size = 256;
-    m_open = false;
-    m_receive_callback = nullptr;
-}
-
 garnet::ServerUdp::ServerUdp(Address addr, bool* success)
 {
     m_addr = addr;
@@ -949,14 +928,7 @@ void garnet::ServerUdp::receive()
     }
 }
 
-garnet::ClientTcp::ClientTcp()
-{
-    m_buf_size = 256;
-    m_receive_callback = nullptr;
-    m_connected = false;
-}
-
-garnet::ClientTcp::ClientTcp(char dummy, bool* success)
+garnet::ClientTcp::ClientTcp(bool* success)
 {
     m_buf_size = 256;
     m_receive_callback = nullptr;
@@ -1053,14 +1025,7 @@ void garnet::ClientTcp::receive()
     }
 }
 
-garnet::ClientUdp::ClientUdp()
-{
-    m_buf_size = 256;
-    m_receive_callback = nullptr;
-    m_connected = false;
-}
-
-garnet::ClientUdp::ClientUdp(char dummy, bool* success)
+garnet::ClientUdp::ClientUdp(bool* success)
 {
     m_buf_size = 256;
     m_receive_callback = nullptr;

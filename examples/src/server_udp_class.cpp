@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include <garnet.h>
+#include <garnet/garnet.hpp>
 
 using namespace garnet;
 
@@ -28,7 +28,7 @@ void receive(void* buffer, int buffer_size, int actual_size, Address client_addr
     for (const Address& addr : client_addresses)
     {
         if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), strlen(msg.c_str()), addr);
+        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
     }
 
     delete[] (char*)buffer;
@@ -56,7 +56,7 @@ int main()
 
         for (Address addr : client_addresses)
         {
-            server.send(buffer, strlen(buffer), addr);
+            server.send(buffer, (int)strlen(buffer), addr);
         }
 
         if (strcmp(buffer, "Server: !quit") == 0) break;
