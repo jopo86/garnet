@@ -2,6 +2,8 @@
 
 #include <iostream>
 #include <vector>
+#include <cstdint>
+#include <cstring>
 
 #ifdef GNET_OS_WINDOWS
     bool g_wsa_initialized = false;
@@ -85,14 +87,7 @@ int garnet::get_version_patch()
 
 std::string garnet::get_version_string()
 {
-    std::string v = std::to_string(GNET_VERSION_MAJOR) + "." + std::to_string(GNET_VERSION_MINOR) + "." + std::to_string(GNET_VERSION_PATCH);
-    if (!GNET_STABLE)
-    {
-        if (GNET_DEV) v += "-dev";
-        else if (GNET_ALPHA) v += "-alpha";
-        else if (GNET_BETA) v += "-beta";
-    }
-    return v;
+    return std::to_string(GNET_VERSION_MAJOR) + "." + std::to_string(GNET_VERSION_MINOR) + "." + std::to_string(GNET_VERSION_PATCH);
 }
 
 #ifdef GNET_OS_WINDOWS
@@ -604,6 +599,67 @@ bool garnet::Socket::is_open() const
     return m_open;
 }
 
+// TCP is a byte stream, so ServerTcp and ClientTcp frame each message with a 4-byte big-endian length prefix.
+
+static bool send_all(garnet::Socket& socket, const char* data, int size)
+{
+    int sent = 0;
+    while (sent < size)
+    {
+        int num_bytes = socket.send((void*)(data + sent), size - sent);
+        if (num_bytes <= 0) return false;
+        sent += num_bytes;
+    }
+    return true;
+}
+
+static bool receive_all(garnet::Socket& socket, char* buffer, int size)
+{
+    int received = 0;
+    while (received < size)
+    {
+        int num_bytes = socket.receive(buffer + received, size - received);
+        if (num_bytes <= 0) return false; // 0 means the peer closed the connection
+        received += num_bytes;
+    }
+    return true;
+}
+
+static bool send_message(garnet::Socket& socket, void* data, int size)
+{
+    if (size < 0) return false;
+
+    // header and payload go out in one buffer so concurrent senders can't interleave them
+    std::vector<char> packet(4 + size);
+    uint32_t len = htonl((uint32_t)size);
+    memcpy(packet.data(), &len, 4);
+    if (size > 0) memcpy(packet.data() + 4, data, size);
+    return send_all(socket, packet.data(), (int)packet.size());
+}
+
+// Returns the full size of the message (which may exceed buffer_size; the excess is discarded), or -1 if the connection closed or errored.
+static int receive_message(garnet::Socket& socket, char* buffer, int buffer_size)
+{
+    uint32_t len_net;
+    if (!receive_all(socket, (char*)&len_net, 4)) return -1;
+    uint32_t len = ntohl(len_net);
+    if (len > INT32_MAX) return -1;
+
+    int to_copy = (int)len < buffer_size ? (int)len : buffer_size;
+    if (to_copy > 0 && !receive_all(socket, buffer, to_copy)) return -1;
+
+    int remaining = (int)len - to_copy;
+    char discard[512];
+    while (remaining > 0)
+    {
+        int chunk = remaining < (int)sizeof(discard) ? remaining : (int)sizeof(discard);
+        if (!receive_all(socket, discard, chunk)) return -1;
+        remaining -= chunk;
+    }
+
+    return (int)len;
+}
+
 garnet::ServerTcp::ServerTcp()
 {
     m_addr.host = "";
@@ -655,7 +711,8 @@ void garnet::ServerTcp::open(int backlog, bool* success)
 
 void garnet::ServerTcp::send(void* data, int size, Address client_addr, bool* success)
 {
-    m_client_map[client_addr].send(data, size, success);
+    bool sent = send_message(m_client_map[client_addr], data, size);
+    if (success != nullptr) *success = sent;
 }
 
 void garnet::ServerTcp::close(bool* success)
@@ -772,9 +829,8 @@ void garnet::ServerTcp::receive(Socket accepted_socket)
         if (m_receive_callback == nullptr) continue;
 
         char* buf = new char[m_buf_size];
-        bool recv_success;
-        int num_bytes = accepted_socket.receive(buf, m_buf_size, &recv_success);
-        if (!recv_success)
+        int num_bytes = receive_message(accepted_socket, buf, m_buf_size);
+        if (num_bytes < 0)
         {
             // client disconnected
             m_client_addrs_mtx.lock();
@@ -936,12 +992,14 @@ void garnet::ClientTcp::connect(Address server_addr, bool* success)
 
 void garnet::ClientTcp::send(void* data, int size, bool* success)
 {
-    m_socket.send(data, size, success);
+    bool sent = send_message(m_socket, data, size);
+    if (success != nullptr) *success = sent;
 }
 
 void garnet::ClientTcp::disconnect(bool* success)
 {
-    if (!m_connected)
+    // m_connected may already be false if the server closed the connection, but the socket and thread still need cleaning up
+    if (!m_receiving.joinable())
     {
         g_err = "Failed to disconnect ClientTcp: not connected yet or already disconnected";
         if (g_print_errors) std::cout << g_err << "\n";
@@ -982,12 +1040,13 @@ void garnet::ClientTcp::receive()
         if (m_receive_callback == nullptr) continue;
 
         char* buf = new char[m_buf_size];
-        bool recv_success;
-        int num_bytes = m_socket.receive(buf, m_buf_size, &recv_success);
-        if (!recv_success)
+        int num_bytes = receive_message(m_socket, buf, m_buf_size);
+        if (num_bytes < 0)
         {
+            // server closed the connection (or disconnect() closed the socket)
             delete[] buf;
-            continue;
+            m_connected = false;
+            break;
         }
 
         m_receive_callback(buf, m_buf_size, num_bytes);

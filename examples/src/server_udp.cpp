@@ -21,9 +21,10 @@ int main()
     while (true)
     {
         Address recv_addr;
-        bool received = server_socket.receive_from(buffer, sizeof(buffer), &recv_addr);
-        if (received)
+        int received = server_socket.receive_from(buffer, sizeof(buffer) - 1, &recv_addr);
+        if (received >= 0)
         {
+            buffer[received] = '\0';
             client_addr = recv_addr;
             if (strcmp(buffer, "!quit") == 0)
             {
@@ -37,7 +38,7 @@ int main()
         std::cout << "Server: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!server_socket.send_to(buffer, sizeof(buffer), client_addr)) std::cout << "MESSAGE NOT SENT\n";
+        if (!server_socket.send_to(buffer, strlen(buffer) + 1, client_addr)) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Server left the chat.\n";

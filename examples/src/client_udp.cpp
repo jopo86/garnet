@@ -20,7 +20,7 @@ int main()
         std::cout << "Client: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!client_socket.send_to(buffer, sizeof(buffer), server_addr)) std::cout << "MESSAGE NOT SENT\n";
+        if (!client_socket.send_to(buffer, strlen(buffer) + 1, server_addr)) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Client left the chat.\n";
@@ -31,9 +31,11 @@ int main()
         bool should_break = false;
         while (!received)
         {
-            received = client_socket.receive_from(buffer, sizeof(buffer), nullptr);
+            int num_bytes = client_socket.receive_from(buffer, sizeof(buffer) - 1, nullptr);
+            received = num_bytes >= 0;
             if (received)
             {
+                buffer[num_bytes] = '\0';
                 if (strcmp(buffer, "!quit") == 0)
                 {
                     std::cout << "Server left the chat.\n";

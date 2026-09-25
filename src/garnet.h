@@ -13,11 +13,6 @@
 #define GNET_VERSION_MINOR  0
 #define GNET_VERSION_PATCH  0
 
-#define GNET_DEV            false
-#define GNET_ALPHA          false
-#define GNET_BETA           true
-#define GNET_STABLE         false
-
 #if defined(_WIN32) || defined(_WIN64) || defined(__WIN32__) || defined(__TOS_WIN__) || defined(__WINDOWS__)
     #define GNET_OS_WINDOWS
 #elif defined(__unix__) || defined(__unix) || defined(unix) || defined(__APPLE__) || defined(__MACH__)
@@ -335,6 +330,8 @@ namespace garnet
 
         /*
             @brief Sends data to the specified client.
+            Each call is delivered as exactly one message to the client's receive callback (a 4-byte length prefix is added internally).
+         !  Because of this framing, the client must also use `ClientTcp` rather than a raw `Socket`.
          !  This function will throw an error if the client address is not in the list of connected clients.
             @param data The data to send.
             @param size The size of the data in bytes.
@@ -560,6 +557,8 @@ namespace garnet
 
         /*
             @brief Sends data to the server.
+            Each call is delivered as exactly one message to the server's receive callback (a 4-byte length prefix is added internally).
+         !  Because of this framing, the server must also use `ServerTcp` rather than a raw `Socket`.
             @param data The data to send.
             @param size The size of the data in bytes.
             @param success A pointer to a boolean to store whether the data was successfully sent.
@@ -575,7 +574,8 @@ namespace garnet
 
         /*
             @brief Checks whether the client is connected.
-            The client is considered 'connected' if `connect()` was called and `disconnect()` was not.
+            The client is considered 'connected' if `connect()` was called and neither `disconnect()` was called nor the server closed the connection.
+            `disconnect()` should still be called after the server closes the connection.
             @return True if the client is connected, false otherwise.
          */
         bool is_connected() const;

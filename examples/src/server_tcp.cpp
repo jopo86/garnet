@@ -23,7 +23,13 @@ int main()
     char buffer[256];
     while (true)
     {
-        accept_socket.receive(buffer, sizeof(buffer));
+        int received = accept_socket.receive(buffer, sizeof(buffer) - 1);
+        if (received <= 0)
+        {
+            std::cout << "Client disconnected.\n";
+            break;
+        }
+        buffer[received] = '\0';
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Client left the chat.\n";
@@ -34,7 +40,7 @@ int main()
         std::cout << "Server: ";
         std::cin.getline(buffer, sizeof(buffer));
 
-        if (!accept_socket.send(buffer, sizeof(buffer))) std::cout << "MESSAGE NOT SENT\n";
+        if (!accept_socket.send(buffer, strlen(buffer) + 1)) std::cout << "MESSAGE NOT SENT\n";
         if (strcmp(buffer, "!quit") == 0)
 		{
 			std::cout << "Server left the chat.\n";

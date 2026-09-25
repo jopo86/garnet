@@ -6,13 +6,14 @@ using namespace garnet;
 
 void receive(void* buffer, int buffer_size, int actual_size, Address server_addr)
 {
-    if (strcmp((char*)buffer, "Server: !quit") == 0)
+    std::string msg((char*)buffer, actual_size < buffer_size ? actual_size : buffer_size);
+    if (msg == "Server: !quit")
     {
         std::cout << "Server disconnected.\n";
         delete[] (char*)buffer;
         exit(0);
     }
-    std::cout << std::string((char*)buffer, actual_size) << "\n";
+    std::cout << msg << "\n";
     delete[] (char*)buffer;
 }
 
@@ -30,7 +31,7 @@ int main()
     {
         std::cin.getline(buffer, sizeof(buffer));
 
-        client.send(buffer, sizeof(buffer), Address{ .host = "127.0.0.1", .port = 55555 } );
+        client.send(buffer, strlen(buffer),Address{ .host = "127.0.0.1", .port = 55555 } );
         if (strcmp(buffer, "!quit") == 0) break;
     }
 

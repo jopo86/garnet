@@ -6,7 +6,7 @@ using namespace garnet;
 
 void receive(void* data, int size, int actual_size, Address client_addr)
 {
-    std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + "): " + std::string((char*)data, actual_size);
+    std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + "): " + std::string((char*)data, actual_size < size ? actual_size : size);
     std::cout << msg << "\n";
     ServerTcp& server = *((ServerTcp*)get_user_ptr());
     for (const Address& addr : server.get_client_addresses())
@@ -64,7 +64,7 @@ int main()
 
         for (const Address& addr : server.get_client_addresses())
         {
-            server.send(buffer, sizeof(buffer), addr);
+            server.send(buffer, strlen(buffer), addr);
         }
 
         if (strcmp(buffer, "Server: !quit") == 0) break;
