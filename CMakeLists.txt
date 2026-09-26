@@ -12,6 +12,8 @@ project(Garnet VERSION 1.0.0)
 
 file(GLOB SOURCE_FILES ${SOURCE_DIR}/*.cpp)
 
+find_package(Threads REQUIRED)
+
 add_library(garnet ${SOURCE_FILES})
 
 target_include_directories(garnet PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -22,5 +24,7 @@ if(BUILD_EXAMPLES)
 endif()
 
 if(WIN32)
-    target_link_libraries(garnet ws2_32)
+    target_link_libraries(garnet PUBLIC ws2_32 Threads::Threads)
+else()
+    target_link_libraries(garnet PUBLIC Threads::Threads)
 endif()

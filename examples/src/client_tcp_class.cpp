@@ -17,6 +17,12 @@ void receive(void* data, int size, int actual_size)
     delete[] (char*)data;
 }
 
+void server_disconnected()
+{
+    std::cout << "Lost connection to server." << std::endl;
+    exit(0);
+}
+
 int main()
 {
     std::cout << "CLIENT\n\n";
@@ -29,6 +35,7 @@ int main()
     });
     set_user_ptr(&client);
     client.set_receive_callback(receive);
+    client.set_disconnect_callback(server_disconnected);
 
     char buffer[256] = "";
     while (client.is_connected())

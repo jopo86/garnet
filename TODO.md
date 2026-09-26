@@ -1,28 +1,5 @@
 # TODO before v1.0.0
 
-## Must fix
-
-### 1. Linux build fails at link time
-Every executable fails with `undefined reference to pthread_create` (seen with Ubuntu 20.04, g++ 9.4). CMake never links the threads library, which glibc before 2.34 needs for `std::thread`.
-
-- [ ] In the root `CMakeLists.txt`:
-  ```cmake
-  find_package(Threads REQUIRED)
-  target_link_libraries(garnet PUBLIC Threads::Threads)
-  ```
-
-### 2. Shutdown can crash (thread lifetime)
-- [ ] **No destructors.** `ServerTcp`, `ServerUdp`, `ClientTcp`, and `ClientUdp` have none. If one is destroyed while its `std::thread` is still joinable (no `close()`/`disconnect()`, an early return, or an exception), the program calls `std::terminate`.
-- [ ] **Detached threads keep using the object.** `close()`/`disconnect()` call `.detach()`, but the worker threads keep reading members like `m_open`, `m_socket`, and the callbacks. If the object is destroyed right after `close()`, a thread waking up from `recv`/`accept` uses freed memory.
-- [ ] Fix: in `close()`/`disconnect()`, close the socket (so blocking calls return), then **join** the threads instead of detaching. Add destructors that do the same if still open or connected.
-  - Watch out: joining from inside a callback deadlocks, because the callback runs on the thread being joined. Either document "don't call `close()` from a callback", or check `std::this_thread::get_id()` and detach in that case.
-
-### 3. Data races in `ServerTcp`
-- [ ] `get_client_addresses()` / `get_client_map()` return references to containers that the accept and receive threads change. Callers (including `examples/src/server_tcp_class.cpp`) loop over them with no lock. Return a copy taken under the mutex instead.
-- [ ] `send()` uses `m_client_map[client_addr]` without the lock. `operator[]` also inserts an empty `Socket` for an unknown address, while the header says it throws. Lock the mutex, use `find()`, and fail (set `*success = false`) if the address is unknown.
-- [ ] `m_receivings` is added to from the accept thread and read in `close()` with no lock. Guard it with a mutex.
-- [ ] Minor: `m_client_addrs_mtx` and `m_client_map_mtx` are always taken together. Merge them into one mutex, or use `std::scoped_lock` to rule out lock-order bugs.
-
 ## Should fix
 
 ### 4. 100% CPU when no receive callback is set

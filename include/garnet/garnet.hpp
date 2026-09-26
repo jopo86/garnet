@@ -329,7 +329,6 @@ namespace garnet
             @brief Sends data to the specified client.
             Each call is delivered as exactly one message to the client's receive callback (a 4-byte length prefix is added internally).
          !  Because of this framing, the client must also use `ClientTcp` rather than a raw `Socket`.
-         !  This function will throw an error if the client address is not in the list of connected clients.
             @param data The data to send.
             @param size The size of the data in bytes.
             @param client_address The address of the client to send the data to.
@@ -339,7 +338,7 @@ namespace garnet
 
         /*
             @brief Closes the server and and clears client data (does not affect the actual clients).
-         !  This function should always be called when the server is no longer needed.
+            This function is called when a `ServerTcp` is destroyed.
             @param success A pointer to a boolean to store whether the server was successfully closed.
          */
         void close(bool* success = nullptr);
@@ -365,13 +364,14 @@ namespace garnet
 
         /*
             @brief Gets the socket representing the accepted connection with the client at the specified address.
-         !  This function will throw an error if the client address is not in the list of connected clients.
+            Returns a blank Socket if the address was not found.
             @param client_address The address of the client.
+            @param success A pointer to store whether the client was found.
             @return The socket representing the accepted connection with the client.
          */
-        Socket& get_client_accepted_socket(Address client_address);
-        const std::list<Address>& get_client_addresses() const;
-        const std::unordered_map<Address, Socket>& get_client_map() const;
+        Socket get_client_accepted_socket(Address client_address, bool* success = nullptr);
+        const std::list<Address> get_client_addresses();
+        const std::unordered_map<Address, Socket> get_client_map();
 
         /*
             @brief Sets the size of the receiving buffer.
@@ -411,6 +411,8 @@ namespace garnet
          */
         void set_client_disconnect_callback(void (*callback)(Address client_address));
 
+        ~ServerTcp();
+
     private:
         Address m_addr;
         Socket m_socket;
@@ -429,6 +431,7 @@ namespace garnet
         void receive(Socket accepted_socket);
         std::thread m_accepting;
         std::vector<std::thread> m_receivings;
+        std::mutex m_receivings_mtx;
 
         void (*m_receive_callback)(void* buffer, int buffer_size, int actual_size, Address from_addr);
         void (*m_client_connect_callback)(Address client_addr);
@@ -471,7 +474,7 @@ namespace garnet
 
         /*
             @brief Closes the server.
-         !  This function should always be called when the server is no longer needed.
+            This function is called when a `ServerUdp` is destroyed.
             @param success A pointer to a boolean to store whether the server was successfully closed.
          */
         void close(bool* success = nullptr);
@@ -508,6 +511,8 @@ namespace garnet
             - `from_client_address`: The address of the client that sent the data.
          */
         void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_client_address));
+
+        ~ServerUdp();
 
     private:
         Address m_addr;
@@ -558,7 +563,7 @@ namespace garnet
 
         /*
             @brief Disconnects the client.
-         !  This function should always be called when the client is no longer needed.
+            This function is called when a `ClientTcp` is destroyed.
             @param success A pointer to a boolean to store whether the client was successfully disconnected.
          */
         void disconnect(bool* success = nullptr);
@@ -596,6 +601,18 @@ namespace garnet
          */
         void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size));
 
+        /*
+            @brief Sets the disconnect callback function.
+            This function will be called (from the receiving thread) when the server closes the connection or the connection is lost.
+            It is not called when the client disconnects itself with `disconnect()`.
+         !  `disconnect()` should still be called afterwards to clean up the socket and thread.
+            @param callback The disconnect callback function. The callback function should adhere to the following signature:
+            `void callback();`
+         */
+        void set_disconnect_callback(void (*callback)());
+
+        ~ClientTcp();
+
     private:
         Socket m_socket;
 
@@ -606,6 +623,7 @@ namespace garnet
         std::thread m_receiving;
 
         void (*m_receive_callback)(void* buffer, int buffer_size, int actual_size);
+        void (*m_disconnect_callback)();
     };
 
     /*
@@ -636,7 +654,8 @@ namespace garnet
 
         /*
             @brief Disconnects the client.
-         *  While the client isn't really connected (since it uses UDP), this function stops the receiving thread and closes the socket.
+            This function is called when a `ClientUdp` is destroyed.
+         *  While the client isn't really "connected" (since it uses UDP), this function stops the receiving thread and closes the socket.
          */
         void disconnect(bool* success = nullptr);
 
@@ -672,6 +691,8 @@ namespace garnet
             - `from_server_address`: The address of the server that sent the data.
          */
         void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_server_address));
+
+        ~ClientUdp();
 
     private:
         Socket m_socket;

@@ -376,6 +376,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
 
     void garnet::Socket::close()
     {
+        shutdown(m_backend_socket, SD_BOTH);
         closesocket(m_backend_socket);
         m_open = false;
     }
@@ -578,6 +579,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
 
     void garnet::Socket::close()
     {
+        shutdown(m_backend_socket, SHUT_RDWR);
         ::close(m_backend_socket);
         m_open = false;
     }
@@ -699,9 +701,12 @@ void garnet::ServerTcp::open(int backlog, bool* success)
 
 void garnet::ServerTcp::send(void* data, int size, Address client_addr, bool* success)
 {
-    bool sent = send_message(m_client_map[client_addr], data, size);
+    std::lock_guard lock(m_client_map_mtx);
+    auto it = m_client_map.find(client_addr);
+    bool sent = it != m_client_map.end() && send_message(it->second, data, size);
     if (success != nullptr) *success = sent;
 }
+
 
 void garnet::ServerTcp::close(bool* success)
 {
@@ -713,21 +718,26 @@ void garnet::ServerTcp::close(bool* success)
         return;
     }
 
-    m_socket.close();
-    for (Address& accepted_addr : m_client_addrs)
-    {
-        m_client_map[accepted_addr].close();
-    }
     m_open = false;
-    m_accepting.detach();
-    for (std::thread& receiving : m_receivings) receiving.detach();
-    m_receivings.clear();
+    m_socket.close();
+    if (m_accepting.get_id() == std::this_thread::get_id()) m_accepting.detach();
+    else m_accepting.join();
+
     m_client_addrs_mtx.lock();
     m_client_map_mtx.lock();
+    for (auto& [addr, sock] : m_client_map) sock.close();
     m_client_addrs.clear();
     m_client_map.clear();
     m_client_addrs_mtx.unlock();
     m_client_map_mtx.unlock();
+    m_receivings_mtx.lock();
+    for (std::thread& receiving : m_receivings)
+    {
+        if (receiving.get_id() == std::this_thread::get_id()) receiving.detach();
+        else receiving.join();
+    }
+    m_receivings.clear();
+    m_receivings_mtx.unlock();
     if (success != nullptr) *success = true;
 }
 
@@ -746,19 +756,28 @@ int garnet::ServerTcp::get_num_clients() const
     return m_num_clients;
 }
 
-garnet::Socket& garnet::ServerTcp::get_client_accepted_socket(Address client_addr)
+garnet::Socket garnet::ServerTcp::get_client_accepted_socket(Address client_addr, bool* success)
 {
-    return m_client_map[client_addr];
+    std::lock_guard lock(m_client_map_mtx);
+    auto it = m_client_map.find(client_addr);
+    if (success != nullptr) *success = it != m_client_map.end();
+    return it != m_client_map.end() ? it->second : Socket();
 }
 
-const std::list<garnet::Address>& garnet::ServerTcp::get_client_addresses() const
+const std::list<garnet::Address> garnet::ServerTcp::get_client_addresses()
 {
-    return m_client_addrs;
+    m_client_addrs_mtx.lock();
+    auto ret = m_client_addrs;
+    m_client_addrs_mtx.unlock();
+    return ret;
 }
 
-const std::unordered_map<garnet::Address, garnet::Socket>& garnet::ServerTcp::get_client_map() const
+const std::unordered_map<garnet::Address, garnet::Socket> garnet::ServerTcp::get_client_map()
 {
-    return m_client_map;
+    m_client_map_mtx.lock();
+    auto ret = m_client_map;
+    m_client_map_mtx.unlock();
+    return ret;
 }
 
 void garnet::ServerTcp::set_buffer_size(int size)
@@ -779,6 +798,11 @@ void garnet::ServerTcp::set_client_connect_callback(void(*callback)(Address clie
 void garnet::ServerTcp::set_client_disconnect_callback(void(*callback)(Address client_addr))
 {
     m_client_disconnect_callback = callback;
+}
+
+garnet::ServerTcp::~ServerTcp()
+{
+    if (m_open) close();
 }
 
 void garnet::ServerTcp::accept()
@@ -802,7 +826,9 @@ void garnet::ServerTcp::accept()
             m_client_addrs_mtx.unlock();
             m_client_map_mtx.unlock();
 
+            m_receivings_mtx.lock();
             m_receivings.push_back(std::thread(&garnet::ServerTcp::receive, this, accepted_socket));
+            m_receivings_mtx.unlock();
             m_num_clients = m_num_clients + 1;
 
             if (m_client_connect_callback != nullptr) m_client_connect_callback(accepted_socket.get_address());
@@ -824,9 +850,11 @@ void garnet::ServerTcp::receive(Socket accepted_socket)
             m_client_addrs_mtx.lock();
             m_client_map_mtx.lock();
             m_client_addrs.remove(accepted_socket.get_address());
-            m_client_map.erase(accepted_socket.get_address());
+            bool owned = m_client_map.erase(accepted_socket.get_address()) > 0;
+            if (owned) accepted_socket.close();   // otherwise close() already closed it
             m_client_addrs_mtx.unlock();
             m_client_map_mtx.unlock();
+
             m_num_clients = m_num_clients - 1;
 
             if (m_client_disconnect_callback != nullptr) m_client_disconnect_callback(accepted_socket.get_address());
@@ -882,9 +910,10 @@ void garnet::ServerUdp::close(bool* success)
         return;
     }
 
-    m_socket.close();
     m_open = false;
-    m_receiving.detach();
+    m_socket.close();
+    if (m_receiving.get_id() == std::this_thread::get_id()) m_receiving.detach();
+    else m_receiving.join();
     if (success != nullptr) *success = true;
 }
 
@@ -906,6 +935,11 @@ void garnet::ServerUdp::set_buffer_size(int size)
 void garnet::ServerUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_addr))
 {
     m_receive_callback = callback;
+}
+
+garnet::ServerUdp::~ServerUdp()
+{
+    if (m_open) close();
 }
 
 void garnet::ServerUdp::receive()
@@ -932,6 +966,7 @@ garnet::ClientTcp::ClientTcp(bool* success)
 {
     m_buf_size = 256;
     m_receive_callback = nullptr;
+    m_disconnect_callback = nullptr;
     m_connected = false;
     m_socket = Socket(Protocol::Tcp, success);
 }
@@ -981,7 +1016,8 @@ void garnet::ClientTcp::disconnect(bool* success)
 
     m_connected = false;
     m_socket.close();
-    m_receiving.detach();
+    if (m_receiving.get_id() == std::this_thread::get_id()) m_receiving.detach();
+    else m_receiving.join();
     if (success != nullptr) *success = true;
 }
 
@@ -1005,6 +1041,16 @@ void garnet::ClientTcp::set_receive_callback(void (*callback)(void* buffer, int 
     m_receive_callback = callback;
 }
 
+void garnet::ClientTcp::set_disconnect_callback(void (*callback)())
+{
+    m_disconnect_callback = callback;
+}
+
+garnet::ClientTcp::~ClientTcp()
+{
+    if (m_receiving.joinable()) disconnect();
+}
+
 void garnet::ClientTcp::receive()
 {
     while (m_connected)
@@ -1017,7 +1063,9 @@ void garnet::ClientTcp::receive()
         {
             // server closed the connection (or disconnect() closed the socket)
             delete[] buf;
-            m_connected = false;
+            // only report it if the server dropped us, not if disconnect() was called
+            bool was_connected = m_connected.exchange(false);
+            if (was_connected && m_disconnect_callback != nullptr) m_disconnect_callback();
             break;
         }
 
@@ -1052,7 +1100,8 @@ void garnet::ClientUdp::disconnect(bool* success)
 
     m_connected = false;
     m_socket.close();
-    m_receiving.detach();
+    if (m_receiving.get_id() == std::this_thread::get_id()) m_receiving.detach();
+    else m_receiving.join();
     if (success != nullptr) *success = true;
 }
 
@@ -1074,6 +1123,11 @@ void garnet::ClientUdp::set_buffer_size(int size)
 void garnet::ClientUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_server_address))
 {
     m_receive_callback = callback;
+}
+
+garnet::ClientUdp::~ClientUdp()
+{
+    if (m_connected) disconnect();
 }
 
 void garnet::ClientUdp::receive()
