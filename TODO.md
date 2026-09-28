@@ -5,16 +5,6 @@
 ### 4. 100% CPU when no receive callback is set
 - [ ] Every receive loop starts with `if (m_receive_callback == nullptr) continue;`, which spins without ever blocking. Receive anyway and drop the data if there's no callback (also needed so TCP disconnects are still detected), or wait on a condition variable.
 
-### 5. `Address::operator=` returns `void`
-- [ ] It produces 14 `-Wdeprecated-copy` warnings on GCC and breaks `a = b = c`. Delete both the declaration and the definition; the compiler-generated one is correct. (`operator==` can stay, or become `bool operator==(const Address&) const = default;` in C++20.)
-
-### 6. Wrong docs for `receive_from`
-- [ ] `include/garnet/garnet.hpp` says `Socket::receive_from()` "is NOT a blocking function", but nothing puts the socket in non-blocking mode (`ioctlsocket` / `fcntl(O_NONBLOCK)`), so it blocks. Fix the comment. If non-blocking is wanted, add an explicit `set_blocking(bool)` option.
-
-### 7. Unsafe global `g_print_errors`
-- [ ] `ServerTcp::accept()` switches `g_print_errors` on and off from its own thread. The main thread and other workers read it at the same time. Make it `std::atomic<bool>`, or better, don't change the global: have `accept()` skip printing for that one call some other way.
-- [ ] Related: `g_err` (the `std::string` behind `get_last_error()`) is written from several threads. Consider making it `thread_local`.
-
 ## Release checklist
 
 ### Repo.

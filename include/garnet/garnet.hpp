@@ -129,7 +129,6 @@ namespace garnet
         std::string host = "";   // The IP address or hostname / domain name.
         ushort port = 0;        // The port number.
 
-        void operator=(const Address& other);
         bool operator==(const Address& other) const;
     };
 
@@ -246,7 +245,7 @@ namespace garnet
 
         /*
             @brief Receives data through the socket from the specified address.
-         *  This is NOT a blocking function - it will return immediately if there is no data to receive.
+         *  This is a blocking function.
          !  This function is only meant for UDP sockets. For TCP sockets, use `receive()`.
             @param buffer The buffer to store the received data.
             @param buffer_size The size of the buffer in bytes.

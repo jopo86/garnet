@@ -10,8 +10,8 @@
     WSADATA g_wsa_data;
 #endif
 
-std::string g_err;
-bool g_print_errors = false;
+thread_local std::string g_err;
+std::atomic<bool> g_print_errors = false;
 void* g_user_ptr = nullptr;
 
 #ifdef GNET_OS_WINDOWS
@@ -58,12 +58,6 @@ void* g_user_ptr = nullptr;
     }
 
 #endif
-
-void garnet::Address::operator=(const Address& other)
-{
-    host = other.host;
-    port = other.port;
-}
 
 bool garnet::Address::operator==(const Address& other) const
 {
