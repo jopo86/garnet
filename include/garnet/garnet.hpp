@@ -705,6 +705,3 @@ namespace gnet
         std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
     };
 };
-
-// compatibility alias for code written before v1
-namespace garnet = gnet;

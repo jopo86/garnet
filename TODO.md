@@ -3,9 +3,7 @@
 ## Release checklist
 
 ### Repo.
-- [ ] Decide whether `logo.psd` belongs in the repo. It's a large binary that users don't need, so it could live outside the repo or be attached to a release instead.
 - [ ] Remove `TODO.md` or move it out of the repo before tagging, if you don't want it public.
-- [ ] Decide whether to keep the `namespace garnet = gnet;` alias at the bottom of `garnet.hpp`. Keeping it means beta code still compiles. Dropping it means there's only one name to document.
 - [ ] Update the GitHub Wiki to use `gnet::` (or remove the Wiki link, see below).
 
 ### CI
@@ -20,7 +18,6 @@
 - [ ] Re-read `include/garnet/garnet.hpp` doc comments for anything outdated (constructors, framing, blocking behavior).
 
 ### Versioning & release
-- [ ] Confirm `GNET_VERSION_*` in `garnet.hpp` and `project(Garnet VERSION ...)` in `CMakeLists.txt` both say `1.0.0`.
 - [ ] Check the GitHub Wiki against the current API, or remove the Wiki link from the README.
 - [ ] Tag the release: `git tag -a v1.0.0 -m "Garnet 1.0.0"` then `git push origin v1.0.0`.
 - [ ] Write the GitHub release notes, including the **breaking changes** since `v1.0.0-beta`:
