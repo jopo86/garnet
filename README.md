@@ -123,7 +123,7 @@ int main()
 | `ServerUdp` | UDP server with a background receive thread and a receive callback that includes the sender's address. |
 | `ClientUdp` | UDP client with a background receive thread. Messages can be sent to any address. |
 
-Every public function is documented in [`include/garnet/garnet.hpp`](include/garnet/garnet.hpp). See the [Wiki](https://github.com/jopo86/garnet/wiki) for longer guides.
+Every public function is documented in [`include/garnet/garnet.hpp`](include/garnet/garnet.hpp).
 
 ### Receive callbacks
 
