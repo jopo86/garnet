@@ -825,7 +825,8 @@ void garnet::ServerTcp::accept()
             m_receivings_mtx.unlock();
             m_num_clients = m_num_clients + 1;
 
-            if (m_client_connect_callback != nullptr) m_client_connect_callback(accepted_socket.get_address());
+            auto cb = m_client_connect_callback.load();
+            if (cb != nullptr) cb(accepted_socket.get_address());
         }
     }
 }
@@ -834,8 +835,6 @@ void garnet::ServerTcp::receive(Socket accepted_socket)
 {
     while (m_open)
     {
-        if (m_receive_callback == nullptr) continue;
-
         char* buf = new char[m_buf_size];
         int num_bytes = receive_message(accepted_socket, buf, m_buf_size);
         if (num_bytes < 0)
@@ -851,13 +850,16 @@ void garnet::ServerTcp::receive(Socket accepted_socket)
 
             m_num_clients = m_num_clients - 1;
 
-            if (m_client_disconnect_callback != nullptr) m_client_disconnect_callback(accepted_socket.get_address());
+            auto cb = m_client_disconnect_callback.load();
+            if (cb != nullptr) cb(accepted_socket.get_address());
 
             delete[] buf;
             break;
         }
 
-        m_receive_callback(buf, m_buf_size, num_bytes, accepted_socket.get_address());
+        auto cb = m_receive_callback.load();
+        if (cb != nullptr) cb(buf, m_buf_size, num_bytes, accepted_socket.get_address());
+        else delete[] buf;
     }
 }
 
@@ -940,8 +942,6 @@ void garnet::ServerUdp::receive()
 {
     while (m_open)
     {
-        if (m_receive_callback == nullptr) continue;
-
         bool recv_success;
         Address from;
         char* buf = new char[m_buf_size];
@@ -952,7 +952,9 @@ void garnet::ServerUdp::receive()
             continue;
         }
 
-        m_receive_callback(buf, m_buf_size, num_bytes, from);
+        auto cb = m_receive_callback.load();
+        if (cb != nullptr) cb(buf, m_buf_size, num_bytes, from);
+        else delete[] buf;
     }
 }
 
@@ -1049,8 +1051,6 @@ void garnet::ClientTcp::receive()
 {
     while (m_connected)
     {
-        if (m_receive_callback == nullptr) continue;
-
         char* buf = new char[m_buf_size];
         int num_bytes = receive_message(m_socket, buf, m_buf_size);
         if (num_bytes < 0)
@@ -1059,11 +1059,14 @@ void garnet::ClientTcp::receive()
             delete[] buf;
             // only report it if the server dropped us, not if disconnect() was called
             bool was_connected = m_connected.exchange(false);
-            if (was_connected && m_disconnect_callback != nullptr) m_disconnect_callback();
+            auto cb = m_disconnect_callback.load();
+            if (was_connected && cb != nullptr) cb();
             break;
         }
 
-        m_receive_callback(buf, m_buf_size, num_bytes);
+        auto cb = m_receive_callback.load();
+        if (cb != nullptr) cb(buf, m_buf_size, num_bytes);
+        else delete[] buf;
     }
 }
 
@@ -1128,8 +1131,6 @@ void garnet::ClientUdp::receive()
 {
     while (m_connected)
     {
-        if (m_receive_callback == nullptr) continue;
-
         bool recv_success;
         Address from;
         char* buf = new char[m_buf_size];
@@ -1140,6 +1141,8 @@ void garnet::ClientUdp::receive()
             continue;
         }
 
-        m_receive_callback(buf, m_buf_size, num_bytes, from);
+        auto cb = m_receive_callback.load();
+        if (cb != nullptr) cb(buf, m_buf_size, num_bytes, from);
+        else delete[] buf;
     }
 }

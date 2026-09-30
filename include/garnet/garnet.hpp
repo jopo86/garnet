@@ -432,9 +432,9 @@ namespace garnet
         std::vector<std::thread> m_receivings;
         std::mutex m_receivings_mtx;
 
-        void (*m_receive_callback)(void* buffer, int buffer_size, int actual_size, Address from_addr);
-        void (*m_client_connect_callback)(Address client_addr);
-        void (*m_client_disconnect_callback)(Address client_addr);
+        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
+        std::atomic<void(*)(Address client_addr)> m_client_connect_callback;
+        std::atomic<void(*)(Address client_addr)> m_client_disconnect_callback;
     };
 
     /*
@@ -523,7 +523,7 @@ namespace garnet
         void receive();
         std::thread m_receiving;
 
-        void (*m_receive_callback)(void* buffer, int buffer_size, int actual_size, Address from_addr);
+        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
     };
 
     /*
@@ -621,8 +621,8 @@ namespace garnet
         void receive(); // receive() and callback while true until error (from server or client closure)
         std::thread m_receiving;
 
-        void (*m_receive_callback)(void* buffer, int buffer_size, int actual_size);
-        void (*m_disconnect_callback)();
+        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size)> m_receive_callback;
+        std::atomic<void(*)()> m_disconnect_callback;
     };
 
     /*
@@ -702,6 +702,6 @@ namespace garnet
         void receive();
         std::thread m_receiving;
 
-        void (*m_receive_callback)(void* buffer, int buffer_size, int actual_size, Address from_addr);
+        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
     };
 };

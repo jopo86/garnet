@@ -1,10 +1,5 @@
 # TODO before v1.0.0
 
-## Should fix
-
-### 4. 100% CPU when no receive callback is set
-- [ ] Every receive loop starts with `if (m_receive_callback == nullptr) continue;`, which spins without ever blocking. Receive anyway and drop the data if there's no callback (also needed so TCP disconnects are still detected), or wait on a condition variable.
-
 ## Release checklist
 
 ### Repo.
