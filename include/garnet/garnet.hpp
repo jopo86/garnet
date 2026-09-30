@@ -51,7 +51,7 @@ typedef unsigned short ushort;
     @brief The Garnet library namespace.
     Garnet is a small, cross-platform C++ networking library providing both high-level server/client architecture and low-level socket operations.
  */
-namespace garnet
+namespace gnet
 {
     /*
         @brief Gets the major version of the library.
@@ -144,9 +144,9 @@ namespace garnet
 namespace std
 {
     template <>
-    struct hash<garnet::Address>
+    struct hash<gnet::Address>
     {
-        size_t operator()(const garnet::Address& addr) const
+        size_t operator()(const gnet::Address& addr) const
         {
             return hash<string>()(addr.host) ^ (hash<int>()(addr.port) << 1);
         }
@@ -157,7 +157,7 @@ namespace std
     @brief The Garnet library namespace.
     Garnet is a small, cross-platform C++ networking library providing both high-level server/client architecture and low-level socket operations.
  */
-namespace garnet
+namespace gnet
 {
     /*
         @brief A class to represent a socket.
@@ -705,3 +705,6 @@ namespace garnet
         std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
     };
 };
+
+// compatibility alias for code written before v1
+namespace garnet = gnet;

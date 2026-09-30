@@ -2,7 +2,7 @@
 
 #include <garnet/garnet.hpp>
 
-using namespace garnet;
+using namespace gnet;
 
 void receive(void* buffer, int buffer_size, int actual_size, Address server_addr)
 {
@@ -21,7 +21,7 @@ int main()
 {
     std::cout << "CLIENT (server won't see you until you send a message)\n\n";
 
-    garnet::init(true);
+    gnet::init(true);
     ClientUdp client;
     set_user_ptr(&client);
     client.set_receive_callback(receive);
@@ -36,7 +36,7 @@ int main()
     }
 
     client.disconnect();
-    garnet::terminate();
+    gnet::terminate();
 
     return 0;
 }

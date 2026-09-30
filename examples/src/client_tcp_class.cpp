@@ -2,7 +2,7 @@
 
 #include <garnet/garnet.hpp>
 
-using namespace garnet;
+using namespace gnet;
 
 void receive(void* data, int size, int actual_size)
 {
@@ -27,7 +27,7 @@ int main()
 {
     std::cout << "CLIENT\n\n";
 
-    garnet::init(true);
+    gnet::init(true);
     ClientTcp client;
     client.connect(Address{
         .host = "127.0.0.1",
@@ -47,7 +47,7 @@ int main()
     }
 
     client.disconnect();
-    garnet::terminate();
+    gnet::terminate();
 
     return 0;
 }

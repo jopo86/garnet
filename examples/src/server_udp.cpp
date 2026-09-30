@@ -2,13 +2,13 @@
 
 #include <garnet/garnet.hpp>
 
-using namespace garnet;
+using namespace gnet;
 
 int main()
 {
     std::cout << "SERVER\n\n";
 
-    garnet::init(true);
+    gnet::init(true);
     Socket server_socket(Protocol::Udp);
     server_socket.bind(Address{
         .host = "127.0.0.1",
@@ -47,6 +47,6 @@ int main()
     }
 
     server_socket.close();
-    garnet::terminate();
+    gnet::terminate();
     return 0;
 }

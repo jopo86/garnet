@@ -16,7 +16,7 @@ void* g_user_ptr = nullptr;
 
 #ifdef GNET_OS_WINDOWS
 
-    SOCKADDR_IN addr_to_backend(garnet::Address addr)
+    SOCKADDR_IN addr_to_backend(gnet::Address addr)
     {
         SOCKADDR_IN backend_addr;
         backend_addr.sin_family = AF_INET;
@@ -25,19 +25,19 @@ void* g_user_ptr = nullptr;
         return backend_addr;
     }
 
-    garnet::Address addr_from_backend(SOCKADDR_IN addr)
+    gnet::Address addr_from_backend(SOCKADDR_IN addr)
     {
-        garnet::Address garnet_addr;
+        gnet::Address gnet_addr;
         char buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
-        garnet_addr.host = std::string(buf);
-        garnet_addr.port = ntohs(addr.sin_port);
-        return garnet_addr;
+        gnet_addr.host = std::string(buf);
+        gnet_addr.port = ntohs(addr.sin_port);
+        return gnet_addr;
     }
 
 #elif defined(GNET_OS_UNIX)
 
-    sockaddr_in addr_to_backend(garnet::Address addr)
+    sockaddr_in addr_to_backend(gnet::Address addr)
     {
         sockaddr_in backend_addr;
         memset(&backend_addr, 0, sizeof(backend_addr)); // Ensure struct is zeroed out
@@ -47,46 +47,46 @@ void* g_user_ptr = nullptr;
         return backend_addr;
     }
 
-    garnet::Address addr_from_backend(sockaddr_in addr)
+    gnet::Address addr_from_backend(sockaddr_in addr)
     {
-        garnet::Address garnet_addr;
+        gnet::Address gnet_addr;
         char buf[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &addr.sin_addr.s_addr, buf, sizeof(buf));
-        garnet_addr.host = std::string(buf);
-        garnet_addr.port = ntohs(addr.sin_port);
-        return garnet_addr;
+        gnet_addr.host = std::string(buf);
+        gnet_addr.port = ntohs(addr.sin_port);
+        return gnet_addr;
     }
 
 #endif
 
-bool garnet::Address::operator==(const Address& other) const
+bool gnet::Address::operator==(const Address& other) const
 {
     return (host == other.host && port == other.port);
 }
 
-int garnet::get_version_major()
+int gnet::get_version_major()
 {
     return GNET_VERSION_MAJOR;
 }
 
-int garnet::get_version_minor()
+int gnet::get_version_minor()
 {
     return GNET_VERSION_MINOR;
 }
 
-int garnet::get_version_patch()
+int gnet::get_version_patch()
 {
     return GNET_VERSION_PATCH;
 }
 
-std::string garnet::get_version_string()
+std::string gnet::get_version_string()
 {
     return std::to_string(GNET_VERSION_MAJOR) + "." + std::to_string(GNET_VERSION_MINOR) + "." + std::to_string(GNET_VERSION_PATCH);
 }
 
 #ifdef GNET_OS_WINDOWS
 
-    bool garnet::init(bool print_errors)
+    bool gnet::init(bool print_errors)
     {
         g_print_errors = print_errors;
 
@@ -108,39 +108,39 @@ std::string garnet::get_version_string()
         return true;
     }
 
-    void garnet::terminate()
+    void gnet::terminate()
     {
         WSACleanup();
     }
 
 #elif defined(GNET_OS_UNIX)
 
-    bool garnet::init(bool print_errors)
+    bool gnet::init(bool print_errors)
     {
         g_print_errors = print_errors;
         return true;
     }
 
-    void garnet::terminate() {}
+    void gnet::terminate() {}
 
 #endif
 
-const std::string& garnet::get_last_error()
+const std::string& gnet::get_last_error()
 {
     return g_err;
 }
 
-void garnet::set_user_ptr(void* ptr)
+void gnet::set_user_ptr(void* ptr)
 {
     g_user_ptr = ptr;
 }
 
-void* garnet::get_user_ptr()
+void* gnet::get_user_ptr()
 {
     return g_user_ptr;
 }
 
-std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
+std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
 {
     struct addrinfo hints, *res;
     memset(&hints, 0, sizeof(hints));
@@ -173,7 +173,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
 
 #ifdef GNET_OS_WINDOWS
 
-    garnet::Socket::Socket()
+    gnet::Socket::Socket()
     {
         m_addr.host = "";
         m_addr.port = 0;
@@ -184,7 +184,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         m_open = false;
     }
 
-    garnet::Socket::Socket(Protocol proto, bool* success)
+    gnet::Socket::Socket(Protocol proto, bool* success)
     {
         m_addr.host = "";
         m_addr.port = 0;
@@ -234,7 +234,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         if (success != nullptr) *success = true;
     }
 
-    void garnet::Socket::bind(Address addr, bool* success)
+    void gnet::Socket::bind(Address addr, bool* success)
     {
         m_addr = addr;
         SOCKADDR_IN backend_addr = addr_to_backend(addr);
@@ -253,7 +253,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return;
     }
 
-    void garnet::Socket::listen(int backlog, bool* success)
+    void gnet::Socket::listen(int backlog, bool* success)
     {
         if (::listen(m_backend_socket, backlog) == SOCKET_ERROR)
         {
@@ -267,7 +267,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return;
     }
 
-    garnet::Socket garnet::Socket::accept(bool* success)
+    gnet::Socket gnet::Socket::accept(bool* success)
     {
         Socket retval;
 
@@ -290,7 +290,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return retval;
     }
 
-    void garnet::Socket::connect(Address addr, bool* success)
+    void gnet::Socket::connect(Address addr, bool* success)
     {
         SOCKADDR_IN backend_addr;
         struct addrinfo hints, *res;
@@ -320,21 +320,21 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         if (success != nullptr) *success = true;
     }
 
-    int garnet::Socket::send(void* data, int size, bool* success)
+    int gnet::Socket::send(void* data, int size, bool* success)
     {
         int num_bytes = ::send(m_backend_socket, (char*)data, size, 0);
         if (success != nullptr) *success = num_bytes != SOCKET_ERROR;
         return num_bytes;
     }
 
-    int garnet::Socket::receive(void* buffer, int buffer_size, bool* success)
+    int gnet::Socket::receive(void* buffer, int buffer_size, bool* success)
     {
         int num_bytes = ::recv(m_backend_socket, (char*)buffer, buffer_size, 0);
         if (success != nullptr) *success = num_bytes != SOCKET_ERROR;
         return num_bytes;
     }
 
-    int garnet::Socket::send_to(void* data, int size, Address to, bool* success)
+    int gnet::Socket::send_to(void* data, int size, Address to, bool* success)
     {
         SOCKADDR_IN backend_to;
         struct addrinfo hints, *res;
@@ -358,7 +358,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return num_bytes;
     }
 
-    int garnet::Socket::receive_from(void* buffer, int buffer_size, Address* from, bool* success)
+    int gnet::Socket::receive_from(void* buffer, int buffer_size, Address* from, bool* success)
     {
         SOCKADDR_IN backend_from;
         int backend_from_size = sizeof(backend_from);
@@ -368,7 +368,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return num_bytes;
     }
 
-    void garnet::Socket::close()
+    void gnet::Socket::close()
     {
         shutdown(m_backend_socket, SD_BOTH);
         closesocket(m_backend_socket);
@@ -376,7 +376,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
     }
 
 #elif defined(GNET_OS_UNIX)
-    garnet::Socket::Socket()
+    gnet::Socket::Socket()
     {
         m_addr.host = "";
         m_addr.port = 0;
@@ -387,7 +387,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         m_open = false;
     }
 
-    garnet::Socket::Socket(Protocol proto, bool* success)
+    gnet::Socket::Socket(Protocol proto, bool* success)
     {
         m_addr.host = "";
         m_addr.port = 0;
@@ -437,7 +437,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         if (success != nullptr) *success = true;
     }
 
-    void garnet::Socket::bind(Address addr, bool* success)
+    void gnet::Socket::bind(Address addr, bool* success)
     {
         m_addr = addr;
         sockaddr_in backend_addr = addr_to_backend(addr);
@@ -456,7 +456,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return;
     }
 
-    void garnet::Socket::listen(int backlog, bool* success)
+    void gnet::Socket::listen(int backlog, bool* success)
     {
         if (::listen(m_backend_socket, backlog) == -1)
         {
@@ -470,7 +470,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return;
     }
 
-    garnet::Socket garnet::Socket::accept(bool* success)
+    gnet::Socket gnet::Socket::accept(bool* success)
     {
         Socket retval;
 
@@ -493,7 +493,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return retval;
     }
 
-    void garnet::Socket::connect(Address addr, bool* success)
+    void gnet::Socket::connect(Address addr, bool* success)
     {
         sockaddr_in backend_addr;
         struct addrinfo hints, *res;
@@ -523,21 +523,21 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         if (success != nullptr) *success = true;
     }
 
-    int garnet::Socket::send(void* data, int size, bool* success)
+    int gnet::Socket::send(void* data, int size, bool* success)
     {
         int num_bytes = ::send(m_backend_socket, (char*)data, size, 0);
         if (success != nullptr) *success = num_bytes != -1;
         return num_bytes;
     }
 
-    int garnet::Socket::receive(void* buffer, int buffer_size, bool* success)
+    int gnet::Socket::receive(void* buffer, int buffer_size, bool* success)
     {
         int num_bytes = ::recv(m_backend_socket, (char*)buffer, buffer_size, 0);
         if (success != nullptr) *success = num_bytes != -1;
         return num_bytes;
     }
 
-    int garnet::Socket::send_to(void* data, int size, Address to, bool* success)
+    int gnet::Socket::send_to(void* data, int size, Address to, bool* success)
     {
         sockaddr_in backend_to;
         struct addrinfo hints, *res;
@@ -561,7 +561,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return num_bytes;
     }
 
-    int garnet::Socket::receive_from(void* buffer, int buffer_size, Address* from, bool* success)
+    int gnet::Socket::receive_from(void* buffer, int buffer_size, Address* from, bool* success)
     {
         sockaddr_in backend_from;
         socklen_t backend_from_size = sizeof(backend_from);
@@ -571,7 +571,7 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
         return num_bytes;
     }
 
-    void garnet::Socket::close()
+    void gnet::Socket::close()
     {
         shutdown(m_backend_socket, SHUT_RDWR);
         ::close(m_backend_socket);
@@ -580,24 +580,24 @@ std::string garnet::hostname_to_ip(const std::string& hostname, bool* success)
 
 #endif
 
-const garnet::Address& garnet::Socket::get_address() const
+const gnet::Address& gnet::Socket::get_address() const
 {
     return m_addr;
 }
 
-const garnet::Protocol& garnet::Socket::get_protocol() const
+const gnet::Protocol& gnet::Socket::get_protocol() const
 {
     return m_proto;
 }
 
-bool garnet::Socket::is_open() const
+bool gnet::Socket::is_open() const
 {
     return m_open;
 }
 
 // TCP is a byte stream, so ServerTcp and ClientTcp frame each message with a 4-byte big-endian length prefix.
 
-static bool send_all(garnet::Socket& socket, const char* data, int size)
+static bool send_all(gnet::Socket& socket, const char* data, int size)
 {
     int sent = 0;
     while (sent < size)
@@ -609,7 +609,7 @@ static bool send_all(garnet::Socket& socket, const char* data, int size)
     return true;
 }
 
-static bool receive_all(garnet::Socket& socket, char* buffer, int size)
+static bool receive_all(gnet::Socket& socket, char* buffer, int size)
 {
     int received = 0;
     while (received < size)
@@ -621,7 +621,7 @@ static bool receive_all(garnet::Socket& socket, char* buffer, int size)
     return true;
 }
 
-static bool send_message(garnet::Socket& socket, void* data, int size)
+static bool send_message(gnet::Socket& socket, void* data, int size)
 {
     if (size < 0) return false;
 
@@ -634,7 +634,7 @@ static bool send_message(garnet::Socket& socket, void* data, int size)
 }
 
 // Returns the full size of the message (which may exceed buffer_size; the excess is discarded), or -1 if the connection closed or errored.
-static int receive_message(garnet::Socket& socket, char* buffer, int buffer_size)
+static int receive_message(gnet::Socket& socket, char* buffer, int buffer_size)
 {
     uint32_t len_net;
     if (!receive_all(socket, (char*)&len_net, 4)) return -1;
@@ -656,7 +656,7 @@ static int receive_message(garnet::Socket& socket, char* buffer, int buffer_size
     return (int)len;
 }
 
-garnet::ServerTcp::ServerTcp(Address addr, bool* success)
+gnet::ServerTcp::ServerTcp(Address addr, bool* success)
 {
     m_addr = addr;
     bool success_a, success_b;
@@ -672,7 +672,7 @@ garnet::ServerTcp::ServerTcp(Address addr, bool* success)
     if (success != nullptr) *success = success_a && success_b;
 }
 
-void garnet::ServerTcp::open(int backlog, bool* success)
+void gnet::ServerTcp::open(int backlog, bool* success)
 {
     if (m_open)
     {
@@ -688,12 +688,12 @@ void garnet::ServerTcp::open(int backlog, bool* success)
     if (success != nullptr) *success = success_a;
     if (success_a)
     {
-        m_accepting = std::thread(&garnet::ServerTcp::accept, this);
+        m_accepting = std::thread(&gnet::ServerTcp::accept, this);
     }
     else m_open = false;
 }
 
-void garnet::ServerTcp::send(void* data, int size, Address client_addr, bool* success)
+void gnet::ServerTcp::send(void* data, int size, Address client_addr, bool* success)
 {
     std::lock_guard lock(m_client_map_mtx);
     auto it = m_client_map.find(client_addr);
@@ -702,7 +702,7 @@ void garnet::ServerTcp::send(void* data, int size, Address client_addr, bool* su
 }
 
 
-void garnet::ServerTcp::close(bool* success)
+void gnet::ServerTcp::close(bool* success)
 {
     if (!m_open)
     {
@@ -735,22 +735,22 @@ void garnet::ServerTcp::close(bool* success)
     if (success != nullptr) *success = true;
 }
 
-bool garnet::ServerTcp::is_open() const
+bool gnet::ServerTcp::is_open() const
 {
     return m_open;
 }
 
-int garnet::ServerTcp::get_buffer_size() const
+int gnet::ServerTcp::get_buffer_size() const
 {
     return m_buf_size;
 }
 
-int garnet::ServerTcp::get_num_clients() const
+int gnet::ServerTcp::get_num_clients() const
 {
     return m_num_clients;
 }
 
-garnet::Socket garnet::ServerTcp::get_client_accepted_socket(Address client_addr, bool* success)
+gnet::Socket gnet::ServerTcp::get_client_accepted_socket(Address client_addr, bool* success)
 {
     std::lock_guard lock(m_client_map_mtx);
     auto it = m_client_map.find(client_addr);
@@ -758,7 +758,7 @@ garnet::Socket garnet::ServerTcp::get_client_accepted_socket(Address client_addr
     return it != m_client_map.end() ? it->second : Socket();
 }
 
-const std::list<garnet::Address> garnet::ServerTcp::get_client_addresses()
+const std::list<gnet::Address> gnet::ServerTcp::get_client_addresses()
 {
     m_client_addrs_mtx.lock();
     auto ret = m_client_addrs;
@@ -766,7 +766,7 @@ const std::list<garnet::Address> garnet::ServerTcp::get_client_addresses()
     return ret;
 }
 
-const std::unordered_map<garnet::Address, garnet::Socket> garnet::ServerTcp::get_client_map()
+const std::unordered_map<gnet::Address, gnet::Socket> gnet::ServerTcp::get_client_map()
 {
     m_client_map_mtx.lock();
     auto ret = m_client_map;
@@ -774,32 +774,32 @@ const std::unordered_map<garnet::Address, garnet::Socket> garnet::ServerTcp::get
     return ret;
 }
 
-void garnet::ServerTcp::set_buffer_size(int size)
+void gnet::ServerTcp::set_buffer_size(int size)
 {
     m_buf_size = size;
 }
 
-void garnet::ServerTcp::set_receive_callback(void(*callback)(void* buffer, int buffer_size, int actual_size, Address from_client_addr))
+void gnet::ServerTcp::set_receive_callback(void(*callback)(void* buffer, int buffer_size, int actual_size, Address from_client_addr))
 {
     m_receive_callback = callback;
 }
 
-void garnet::ServerTcp::set_client_connect_callback(void(*callback)(Address client_addr))
+void gnet::ServerTcp::set_client_connect_callback(void(*callback)(Address client_addr))
 {
     m_client_connect_callback = callback;
 }
 
-void garnet::ServerTcp::set_client_disconnect_callback(void(*callback)(Address client_addr))
+void gnet::ServerTcp::set_client_disconnect_callback(void(*callback)(Address client_addr))
 {
     m_client_disconnect_callback = callback;
 }
 
-garnet::ServerTcp::~ServerTcp()
+gnet::ServerTcp::~ServerTcp()
 {
     if (m_open) close();
 }
 
-void garnet::ServerTcp::accept()
+void gnet::ServerTcp::accept()
 {
     while (m_open)
     {
@@ -821,7 +821,7 @@ void garnet::ServerTcp::accept()
             m_client_map_mtx.unlock();
 
             m_receivings_mtx.lock();
-            m_receivings.push_back(std::thread(&garnet::ServerTcp::receive, this, accepted_socket));
+            m_receivings.push_back(std::thread(&gnet::ServerTcp::receive, this, accepted_socket));
             m_receivings_mtx.unlock();
             m_num_clients = m_num_clients + 1;
 
@@ -831,7 +831,7 @@ void garnet::ServerTcp::accept()
     }
 }
 
-void garnet::ServerTcp::receive(Socket accepted_socket)
+void gnet::ServerTcp::receive(Socket accepted_socket)
 {
     while (m_open)
     {
@@ -863,7 +863,7 @@ void garnet::ServerTcp::receive(Socket accepted_socket)
     }
 }
 
-garnet::ServerUdp::ServerUdp(Address addr, bool* success)
+gnet::ServerUdp::ServerUdp(Address addr, bool* success)
 {
     m_addr = addr;
     bool success_a, success_b;
@@ -876,7 +876,7 @@ garnet::ServerUdp::ServerUdp(Address addr, bool* success)
     if (success != nullptr) *success = success_a && success_b;
 }
 
-void garnet::ServerUdp::open(bool* success)
+void gnet::ServerUdp::open(bool* success)
 {
     if (m_open)
     {
@@ -887,16 +887,16 @@ void garnet::ServerUdp::open(bool* success)
     }
 
     m_open = true;
-    m_receiving = std::thread(&garnet::ServerUdp::receive, this);
+    m_receiving = std::thread(&gnet::ServerUdp::receive, this);
     if (success != nullptr) *success = true;
 }
 
-void garnet::ServerUdp::send(void* data, int size, Address addr, bool* success)
+void gnet::ServerUdp::send(void* data, int size, Address addr, bool* success)
 {
     m_socket.send_to(data, size, addr, success);
 }
 
-void garnet::ServerUdp::close(bool* success)
+void gnet::ServerUdp::close(bool* success)
 {
     if (!m_open)
     {
@@ -913,32 +913,32 @@ void garnet::ServerUdp::close(bool* success)
     if (success != nullptr) *success = true;
 }
 
-bool garnet::ServerUdp::is_open() const
+bool gnet::ServerUdp::is_open() const
 {
     return m_open;
 }
 
-int garnet::ServerUdp::get_buffer_size() const
+int gnet::ServerUdp::get_buffer_size() const
 {
     return m_buf_size;
 }
 
-void garnet::ServerUdp::set_buffer_size(int size)
+void gnet::ServerUdp::set_buffer_size(int size)
 {
     m_buf_size = size;
 }
 
-void garnet::ServerUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_addr))
+void gnet::ServerUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_addr))
 {
     m_receive_callback = callback;
 }
 
-garnet::ServerUdp::~ServerUdp()
+gnet::ServerUdp::~ServerUdp()
 {
     if (m_open) close();
 }
 
-void garnet::ServerUdp::receive()
+void gnet::ServerUdp::receive()
 {
     while (m_open)
     {
@@ -958,7 +958,7 @@ void garnet::ServerUdp::receive()
     }
 }
 
-garnet::ClientTcp::ClientTcp(bool* success)
+gnet::ClientTcp::ClientTcp(bool* success)
 {
     m_buf_size = 256;
     m_receive_callback = nullptr;
@@ -967,7 +967,7 @@ garnet::ClientTcp::ClientTcp(bool* success)
     m_socket = Socket(Protocol::Tcp, success);
 }
 
-void garnet::ClientTcp::connect(Address server_addr, bool* success)
+void gnet::ClientTcp::connect(Address server_addr, bool* success)
 {
     if (m_connected)
     {
@@ -990,16 +990,16 @@ void garnet::ClientTcp::connect(Address server_addr, bool* success)
         return;
     }
 
-    m_receiving = std::thread(&garnet::ClientTcp::receive, this);
+    m_receiving = std::thread(&gnet::ClientTcp::receive, this);
 }
 
-void garnet::ClientTcp::send(void* data, int size, bool* success)
+void gnet::ClientTcp::send(void* data, int size, bool* success)
 {
     bool sent = send_message(m_socket, data, size);
     if (success != nullptr) *success = sent;
 }
 
-void garnet::ClientTcp::disconnect(bool* success)
+void gnet::ClientTcp::disconnect(bool* success)
 {
     // m_connected may already be false if the server closed the connection, but the socket and thread still need cleaning up
     if (!m_receiving.joinable())
@@ -1017,37 +1017,37 @@ void garnet::ClientTcp::disconnect(bool* success)
     if (success != nullptr) *success = true;
 }
 
-bool garnet::ClientTcp::is_connected() const
+bool gnet::ClientTcp::is_connected() const
 {
     return m_connected;
 }
 
-int garnet::ClientTcp::get_buffer_size() const
+int gnet::ClientTcp::get_buffer_size() const
 {
     return m_buf_size;
 }
 
-void garnet::ClientTcp::set_buffer_size(int buffer_size)
+void gnet::ClientTcp::set_buffer_size(int buffer_size)
 {
     m_buf_size = buffer_size;
 }
 
-void garnet::ClientTcp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size))
+void gnet::ClientTcp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size))
 {
     m_receive_callback = callback;
 }
 
-void garnet::ClientTcp::set_disconnect_callback(void (*callback)())
+void gnet::ClientTcp::set_disconnect_callback(void (*callback)())
 {
     m_disconnect_callback = callback;
 }
 
-garnet::ClientTcp::~ClientTcp()
+gnet::ClientTcp::~ClientTcp()
 {
     if (m_receiving.joinable()) disconnect();
 }
 
-void garnet::ClientTcp::receive()
+void gnet::ClientTcp::receive()
 {
     while (m_connected)
     {
@@ -1070,22 +1070,22 @@ void garnet::ClientTcp::receive()
     }
 }
 
-garnet::ClientUdp::ClientUdp(bool* success)
+gnet::ClientUdp::ClientUdp(bool* success)
 {
     m_buf_size = 256;
     m_receive_callback = nullptr;
     m_connected = true;
     m_socket = Socket(Protocol::Udp, success);
 
-    m_receiving = std::thread(&garnet::ClientUdp::receive, this);
+    m_receiving = std::thread(&gnet::ClientUdp::receive, this);
 }
 
-void garnet::ClientUdp::send(void* data, int size, Address addr, bool* success)
+void gnet::ClientUdp::send(void* data, int size, Address addr, bool* success)
 {
     m_socket.send_to(data, size, addr, success);
 }
 
-void garnet::ClientUdp::disconnect(bool* success)
+void gnet::ClientUdp::disconnect(bool* success)
 {
     if (!m_connected)
     {
@@ -1102,32 +1102,32 @@ void garnet::ClientUdp::disconnect(bool* success)
     if (success != nullptr) *success = true;
 }
 
-bool garnet::ClientUdp::is_connected() const
+bool gnet::ClientUdp::is_connected() const
 {
     return m_connected;
 }
 
-int garnet::ClientUdp::get_buffer_size() const
+int gnet::ClientUdp::get_buffer_size() const
 {
     return m_buf_size;
 }
 
-void garnet::ClientUdp::set_buffer_size(int size)
+void gnet::ClientUdp::set_buffer_size(int size)
 {
     m_buf_size = size;
 }
 
-void garnet::ClientUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_server_address))
+void gnet::ClientUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_server_address))
 {
     m_receive_callback = callback;
 }
 
-garnet::ClientUdp::~ClientUdp()
+gnet::ClientUdp::~ClientUdp()
 {
     if (m_connected) disconnect();
 }
 
-void garnet::ClientUdp::receive()
+void gnet::ClientUdp::receive()
 {
     while (m_connected)
     {

@@ -16,8 +16,8 @@ Garnet is a small, cross-platform C++20 networking library for Windows, Linux, a
 - **Message framing for TCP.** `ServerTcp` and `ClientTcp` add a length prefix to each message, so one `send()` on one side triggers exactly one receive callback on the other. Messages are never merged or split across callbacks.
 - **Background threads.** Servers accept and receive on worker threads. Your code reacts through callbacks for received data and (for TCP) client connect and disconnect events.
 - **TCP disconnect detection.** An orderly shutdown and a dropped connection both end the session, and the server fires the disconnect callback.
-- **Simple error handling.** Every operation that can fail takes an optional `bool* success` out-parameter. `garnet::get_last_error()` returns a readable message, and `garnet::init(true)` prints errors as they happen while debugging.
-- **Hostname resolution** through `garnet::hostname_to_ip()`.
+- **Simple error handling.** Every operation that can fail takes an optional `bool* success` out-parameter. `gnet::get_last_error()` returns a readable message, and `gnet::init(true)` prints errors as they happen while debugging.
+- **Hostname resolution** through `gnet::hostname_to_ip()`.
 
 ## Requirements
 
@@ -47,7 +47,7 @@ The examples are built by default and placed in `build/examples/`. To build only
 
 Add `include/` to your include path, include `garnet.hpp`, and link against the built library. On Windows, also link `ws2_32`.
 
-Every program must call `garnet::init()` before any other Garnet function and `garnet::terminate()` when it's finished. On Windows these start up and shut down Winsock. On Unix they do nothing, but calling them keeps the code portable.
+Every program must call `gnet::init()` before any other Garnet function and `gnet::terminate()` when it's finished. On Windows these start up and shut down Winsock. On Unix they do nothing, but calling them keeps the code portable.
 
 ### Quick start: TCP echo server
 
@@ -56,12 +56,12 @@ Every program must call `garnet::init()` before any other Garnet function and `g
 #include <iostream>
 #include <string>
 
-void on_receive(void* buffer, int buffer_size, int actual_size, garnet::Address from)
+void on_receive(void* buffer, int buffer_size, int actual_size, gnet::Address from)
 {
     std::string msg((char*)buffer, actual_size < buffer_size ? actual_size : buffer_size);
     std::cout << from.host << ":" << from.port << " sent: " << msg << "\n";
 
-    auto& server = *(garnet::ServerTcp*)garnet::get_user_ptr();
+    auto& server = *(gnet::ServerTcp*)gnet::get_user_ptr();
     server.send(msg.data(), (int)msg.size(), from); // echo it back
 
     delete[] (char*)buffer; // the callback owns the buffer
@@ -69,17 +69,17 @@ void on_receive(void* buffer, int buffer_size, int actual_size, garnet::Address 
 
 int main()
 {
-    garnet::init(true);
+    gnet::init(true);
 
-    garnet::ServerTcp server(garnet::Address{ .host = "127.0.0.1", .port = 55555 });
-    garnet::set_user_ptr(&server);
+    gnet::ServerTcp server(gnet::Address{ .host = "127.0.0.1", .port = 55555 });
+    gnet::set_user_ptr(&server);
     server.set_receive_callback(on_receive);
     server.open();
 
     std::cin.get(); // serve until Enter is pressed
 
     server.close();
-    garnet::terminate();
+    gnet::terminate();
 }
 ```
 
@@ -98,18 +98,18 @@ void on_receive(void* buffer, int buffer_size, int actual_size)
 
 int main()
 {
-    garnet::init(true);
+    gnet::init(true);
 
-    garnet::ClientTcp client;
+    gnet::ClientTcp client;
     client.set_receive_callback(on_receive);
-    client.connect(garnet::Address{ .host = "127.0.0.1", .port = 55555 });
+    client.connect(gnet::Address{ .host = "127.0.0.1", .port = 55555 });
 
     std::string line;
     while (client.is_connected() && std::getline(std::cin, line))
         client.send(line.data(), (int)line.size());
 
     client.disconnect();
-    garnet::terminate();
+    gnet::terminate();
 }
 ```
 
@@ -123,7 +123,7 @@ int main()
 | `ServerUdp` | UDP server with a background receive thread and a receive callback that includes the sender's address. |
 | `ClientUdp` | UDP client with a background receive thread. Messages can be sent to any address. |
 
-Every public function is documented in [`src/garnet.hpp`](src/garnet.hpp). See the [Wiki](https://github.com/jopo86/garnet/wiki) for longer guides.
+Every public function is documented in [`include/garnet/garnet.hpp`](include/garnet/garnet.hpp). See the [Wiki](https://github.com/jopo86/garnet/wiki) for longer guides.
 
 ### Receive callbacks
 

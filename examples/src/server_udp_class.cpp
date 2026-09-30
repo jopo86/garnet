@@ -2,7 +2,7 @@
 
 #include <garnet/garnet.hpp>
 
-using namespace garnet;
+using namespace gnet;
 
 std::vector<Address> client_addresses = {};
 
@@ -38,7 +38,7 @@ int main()
 {
     std::cout << "SERVER\n\n";
 
-    garnet::init(true);
+    gnet::init(true);
     ServerUdp server(Address{
         .host = "127.0.0.1",
         .port = 55555
@@ -63,7 +63,7 @@ int main()
     }
 
     server.close();
-    garnet::terminate();
+    gnet::terminate();
 
     return 0;
 }
