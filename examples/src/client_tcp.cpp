@@ -11,10 +11,12 @@ int main()
     gnet::init(true);
     Socket client_socket(Protocol::Tcp);
     std::cout << "Connecting to server...\n";
+    bool success;
     client_socket.connect(Address{
         .host = "127.0.0.1",
         .port = 55555
-    });
+    }, &success);
+    if (!success) return 0; // no need to print failure - `init(true)` means internal errors will be printed
 
     std::cout << "CHAT STARTED ----- enter '!quit' to exit\n\n";
     char buffer[256];
