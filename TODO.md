@@ -4,12 +4,11 @@
 
 ### Repo.
 - [ ] Remove `TODO.md` or move it out of the repo before tagging, if you don't want it public.
-- [ ] Update the GitHub Wiki to use `gnet::` (or remove the Wiki link, see below).
 
 ### CI
 - [ ] Add a GitHub Actions workflow (`.github/workflows/build.yml`) that builds the library and examples on `windows-latest`, `ubuntu-latest`, and `macos-latest`. This would have caught fix #1.
 - [ ] Add the build-status badge to the top of `README.md`.
-- [ ] Optional: turn on warnings (`/W4`, `-Wall -Wextra`) in CI so new warnings are noticed.
+- [ ] Turn on warnings (`/W4`, `-Wall -Wextra`) in CI so new warnings are noticed.
 
 ### Verify
 - [ ] Run each example pair by hand (server first, then one or more clients). Check joining, chatting, `!quit`, and killing a client or the server mid-session.
@@ -18,7 +17,6 @@
 - [ ] Re-read `include/garnet/garnet.hpp` doc comments for anything outdated (constructors, framing, blocking behavior).
 
 ### Versioning & release
-- [ ] Check the GitHub Wiki against the current API, or remove the Wiki link from the README.
 - [ ] Tag the release: `git tag -a v1.0.0 -m "Garnet 1.0.0"` then `git push origin v1.0.0`.
 - [ ] Write the GitHub release notes, including the **breaking changes** since `v1.0.0-beta`:
   - Header moved to `include/garnet/garnet.hpp` (use `#include <garnet/garnet.hpp>`)
