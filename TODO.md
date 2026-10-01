@@ -23,9 +23,10 @@
 - [ ] Tag the release: `git tag -a v1.0.0 -m "Garnet 1.0.0"` then `git push origin v1.0.0`.
 - [ ] Write the GitHub release notes, including the **breaking changes** since `v1.0.0-beta`:
   - Header moved to `include/garnet/garnet.hpp` (use `#include <garnet/garnet.hpp>`)
-  - Namespace renamed from `garnet` to `gnet` (`namespace garnet = gnet;` alias kept for compatibility)
+  - Namespace renamed from `garnet` to `gnet`
   - `ClientTcp('c')` / `ClientUdp('c')` → `ClientTcp` / `ClientUdp` (no placeholder argument)
   - Default constructors for `ServerTcp`, `ServerUdp`, `ClientTcp`, `ClientUdp` removed. Server/client objects can no longer be copied.
   - `ServerTcp`/`ClientTcp` now add a 4-byte length prefix to each message, so they only work with each other, not with raw sockets
+  - Switched from raw function pointers to `std::function`
   - C++20 required
 - [ ] Optional: attach prebuilt binaries (for example MSVC `garnet.lib` and Linux `libgarnet.a`) to the release.
