@@ -23,7 +23,6 @@ int main()
 
     gnet::init(true);
     ClientUdp client;
-    set_user_ptr(&client);
     client.set_receive_callback(receive);
 
     char buffer[256] = "";

@@ -13,7 +13,6 @@
 
 thread_local std::string g_err;
 std::atomic<bool> g_print_errors = false;
-void* g_user_ptr = nullptr;
 
 #ifdef GNET_OS_WINDOWS
 
@@ -129,16 +128,6 @@ std::string gnet::get_version_string()
 const std::string& gnet::get_last_error()
 {
     return g_err;
-}
-
-void gnet::set_user_ptr(void* ptr)
-{
-    g_user_ptr = ptr;
-}
-
-void* gnet::get_user_ptr()
-{
-    return g_user_ptr;
 }
 
 std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)

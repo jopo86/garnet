@@ -4,43 +4,6 @@
 
 using namespace gnet;
 
-void receive(void* data, int size, int actual_size, Address client_addr)
-{
-    std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + "): " + std::string((char*)data, actual_size < size ? actual_size : size);
-    std::cout << msg << "\n";
-    ServerTcp& server = *((ServerTcp*)get_user_ptr());
-    for (const Address& addr : server.get_client_addresses())
-    {
-        if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
-    }
-    delete[] (char*)data;
-}
-
-void client_connected(Address client_addr)
-{
-    std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + ") connected.";
-    std::cout << msg << "\n";
-    ServerTcp& server = *((ServerTcp*)get_user_ptr());
-    for (const Address& addr : server.get_client_addresses())
-    {
-        if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
-    }
-}
-
-void client_disconnected(Address client_addr)
-{
-    std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + ") disconnected.";
-    std::cout << msg << "\n";
-    ServerTcp& server = *((ServerTcp*)get_user_ptr());
-    for (const Address& addr : server.get_client_addresses())
-    {
-        if (client_addr == addr) continue;
-        server.send((void*)msg.c_str(), (int)strlen(msg.c_str()), addr);
-    }
-}
-
 int main()
 {
     std::cout << "SERVER\n\n";
@@ -50,11 +13,41 @@ int main()
         .host = "127.0.0.1",
         .port = 55555
     });
-    set_user_ptr(&server);
 
-    server.set_receive_callback(receive);
-    server.set_client_connect_callback(client_connected);
-    server.set_client_disconnect_callback(client_disconnected);
+    // sends msg to every client except the one it came from
+    auto broadcast = [&server](const std::string& msg, Address except)
+    {
+        for (const Address& addr : server.get_client_addresses())
+        {
+            if (addr == except) continue;
+            server.send((void*)msg.c_str(), (int)msg.size(), addr);
+        }
+    };
+
+    // the lambdas capture `server` and `broadcast` by reference, which is safe because
+    // server.close() below stops the callback threads before either goes out of scope
+    server.set_receive_callback([&](void* data, int size, int actual_size, Address client_addr)
+    {
+        std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + "): " + std::string((char*)data, actual_size < size ? actual_size : size);
+        std::cout << msg << "\n";
+        broadcast(msg, client_addr);
+        delete[] (char*)data;
+    });
+
+    server.set_client_connect_callback([&](Address client_addr)
+    {
+        std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + ") connected.";
+        std::cout << msg << "\n";
+        broadcast(msg, client_addr);
+    });
+
+    server.set_client_disconnect_callback([&](Address client_addr)
+    {
+        std::string msg = "Client (" + client_addr.host + ":" + std::to_string(client_addr.port) + ") disconnected.";
+        std::cout << msg << "\n";
+        broadcast(msg, client_addr);
+    });
+
     server.open();
 
     char buffer[256] = "Server: ";

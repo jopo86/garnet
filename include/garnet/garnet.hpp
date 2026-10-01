@@ -100,20 +100,6 @@ namespace gnet
     const std::string& get_last_error();
 
     /*
-        @brief Sets the user pointer for the library.
-        This is useful for storing user data that needs to be accessed in callbacks.
-        @param ptr The pointer to set.
-     */
-    void set_user_ptr(void* ptr);
-
-    /*
-        @brief Gets the user pointer for the library.
-        This is useful for storing user data that needs to be accessed in callbacks.
-        @return The user pointer. Default is `nullptr`.
-     */
-    void* get_user_ptr();
-
-    /*
         @brief An enum class to represent a network protocol.
      */
     enum class Protocol

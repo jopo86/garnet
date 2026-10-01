@@ -33,7 +33,6 @@ int main()
         .host = "127.0.0.1",
         .port = 55555
     });
-    set_user_ptr(&client);
     client.set_receive_callback(receive);
     client.set_disconnect_callback(server_disconnected);
 

@@ -2,6 +2,12 @@
   <img src="logo.png" alt="Garnet logo">
 </p>
 
+<p align="center">
+  <a href="https://github.com/jopo86/garnet/actions/workflows/build.yml">
+    <img src="https://github.com/jopo86/garnet/actions/workflows/build.yml/badge.svg?branch=release" alt="Build status">
+  </a>
+</p>
+
 # Garnet
 
 Garnet is a small, cross-platform C++20 networking library for Windows, Linux, and macOS. It wraps Winsock and POSIX sockets in one API with two layers:
@@ -56,24 +62,22 @@ Every program must call `gnet::init()` before any other Garnet function and `gne
 #include <iostream>
 #include <string>
 
-void on_receive(void* buffer, int buffer_size, int actual_size, gnet::Address from)
-{
-    std::string msg((char*)buffer, actual_size < buffer_size ? actual_size : buffer_size);
-    std::cout << from.host << ":" << from.port << " sent: " << msg << "\n";
-
-    auto& server = *(gnet::ServerTcp*)gnet::get_user_ptr();
-    server.send(msg.data(), (int)msg.size(), from); // echo it back
-
-    delete[] (char*)buffer; // the callback owns the buffer
-}
-
 int main()
 {
     gnet::init(true);
 
     gnet::ServerTcp server(gnet::Address{ .host = "127.0.0.1", .port = 55555 });
-    gnet::set_user_ptr(&server);
-    server.set_receive_callback(on_receive);
+
+    // callbacks can be any callable, so a lambda can capture the server directly
+    server.set_receive_callback([&server](void* buffer, int buffer_size, int actual_size, gnet::Address from)
+    {
+        std::string msg((char*)buffer, actual_size < buffer_size ? actual_size : buffer_size);
+        std::cout << from.host << ":" << from.port << " sent: " << msg << "\n";
+
+        server.send(msg.data(), (int)msg.size(), from); // echo it back
+
+        delete[] (char*)buffer; // the callback owns the buffer
+    });
     server.open();
 
     std::cin.get(); // serve until Enter is pressed
