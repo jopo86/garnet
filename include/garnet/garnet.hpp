@@ -8,6 +8,7 @@
 #include <atomic>
 #include <vector>
 #include <list>
+#include <utility>
 
 #define GNET_VERSION_MAJOR  1
 #define GNET_VERSION_MINOR  0
@@ -55,40 +56,40 @@ namespace gnet
 {
     /*
         @brief Gets the major version of the library.
-        @return The major version of the library (X.y.z).
+        @return The major version of the library (N.n.n).
      */
     int get_version_major();
 
     /*
         @brief Gets the minor version of the library.
-        @return The minor version of the library (x.Y.z).
+        @return The minor version of the library (n.N.n).
      */
     int get_version_minor();
 
     /*
         @brief Gets the patch version of the library.
-        @return The patch version of the library (x.y.Z).
+        @return The patch version of the library (n.n.N).
      */
     int get_version_patch();
 
     /*
         @brief Gets the version of the library as a string.
-        @return The version of the library as a string in the format 'x.y.z' or 'x.y.z-alpha/beta'.
+        @return The version of the library as a string in the format 'n.n.n'
      */
     std::string get_version_string();
 
     /*
         @brief Initializes the library.
-        This function is required on Windows, but not on Unix systems.
-        @param print_errors If true, errors will always be printed to the console. Helpful for quick debugging.
+        Required on windows, no-op on Unix (other than setting `print_errors`).
+        @param print_errors If true, errors will always be printed to the console. Helpful for quick debugging;
+        the alternative is to use `get_last_error()` when a function fails.
         @return True if the library was successfully initialized, false otherwise. Always returns true on Unix systems.
      */
     bool init(bool print_errors = false);
 
     /*
         @brief Terminates the library.
-        This function is required on Windows, but not on Unix systems.
-        It literally does nothing on Unix systems.
+        Required on Windows, no-op on Unix.
      */
     void terminate();
 
@@ -100,6 +101,7 @@ namespace gnet
 
     /*
         @brief Sets the user pointer for the library.
+        This is useful for storing user data that needs to be accessed in callbacks.
         @param ptr The pointer to set.
      */
     void set_user_ptr(void* ptr);
@@ -298,6 +300,67 @@ namespace gnet
         bool m_open;
     };
 
+    // internal helpers, not part of the public API
+    namespace detail
+    {
+        /*
+            @brief A value paired with the mutex that protects it.
+            The value can only be reached through `with_lock()`, `copy()` or `set()`, all of which hold the lock,
+            so it is never accessed unlocked by accident. Everything inside one `with_lock()` call happens atomically.
+         !  Don't return references, pointers or iterators into the value from `with_lock()`; they outlive the lock.
+         */
+        template <typename T>
+        class Synchronized
+        {
+        public:
+            Synchronized() = default;
+            explicit Synchronized(T value) : m_value(std::move(value)) {}
+
+            Synchronized(const Synchronized&) = delete;
+            Synchronized& operator=(const Synchronized&) = delete;
+
+            /*
+                @brief Calls `f` with a reference to the value while holding the lock.
+                @return Whatever `f` returns (by value).
+             */
+            template <typename F>
+            auto with_lock(F&& f)
+            {
+                std::lock_guard guard(m_mtx);
+                return f(m_value);
+            }
+
+            template <typename F>
+            auto with_lock(F&& f) const
+            {
+                std::lock_guard guard(m_mtx);
+                return f(m_value);
+            }
+
+            /*
+                @brief Returns a copy of the value, taken while holding the lock.
+             */
+            T copy() const
+            {
+                std::lock_guard guard(m_mtx);
+                return m_value;
+            }
+
+            /*
+                @brief Replaces the value while holding the lock.
+             */
+            void set(T value)
+            {
+                std::lock_guard guard(m_mtx);
+                m_value = std::move(value);
+            }
+
+        private:
+            T m_value{};
+            mutable std::mutex m_mtx;
+        };
+    }
+
     /*
         @brief A class to represent a TCP server.
         This class provides a simple but comprehensive interface for creating and managing TCP servers.
@@ -390,7 +453,7 @@ namespace gnet
             - `actual_size`: The original size of the data that was sent from the client (regardless of `buffer_size`), in bytes.
             - `from_client_address`: The address of the client that sent the data.
          */
-        void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_client_address));
+        void set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size, Address from_client_address)> callback);
 
         /*
             @brief Sets the client connect callback function.
@@ -399,7 +462,7 @@ namespace gnet
             `void callback(Address client_address);`
             - `client_address`: The address of the client that connected.
          */
-        void set_client_connect_callback(void (*callback)(Address client_address));
+        void set_client_connect_callback(std::function<void(Address client_address)> callback);
 
         /*
             @brief Sets the client disconnect callback function.
@@ -408,7 +471,7 @@ namespace gnet
             `void callback(Address client_address);`
             - `client_address`: The address of the client that disconnected.
          */
-        void set_client_disconnect_callback(void (*callback)(Address client_address));
+        void set_client_disconnect_callback(std::function<void(Address client_address)> callback);
 
         ~ServerTcp();
 
@@ -419,22 +482,18 @@ namespace gnet
         std::atomic<int> m_buf_size;
         std::atomic<int> m_num_clients;
 
-        std::list<Address> m_client_addrs;
-        std::unordered_map<Address, Socket> m_client_map;
-        std::mutex m_client_addrs_mtx;
-        std::mutex m_client_map_mtx;
+        detail::Synchronized<std::unordered_map<Address, Socket>> m_clients;
 
         std::atomic<bool> m_open;
 
         void accept();
         void receive(Socket accepted_socket);
         std::thread m_accepting;
-        std::vector<std::thread> m_receivings;
-        std::mutex m_receivings_mtx;
+        detail::Synchronized<std::vector<std::thread>> m_receivings;
 
-        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
-        std::atomic<void(*)(Address client_addr)> m_client_connect_callback;
-        std::atomic<void(*)(Address client_addr)> m_client_disconnect_callback;
+        detail::Synchronized<std::function<void(void* buffer, int buffer_size, int actual_size, Address from_addr)>> m_receive_callback;
+        detail::Synchronized<std::function<void(Address client_addr)>> m_client_connect_callback;
+        detail::Synchronized<std::function<void(Address client_addr)>> m_client_disconnect_callback;
     };
 
     /*
@@ -509,7 +568,7 @@ namespace gnet
             - `actual_size`: The original size of the data that was sent from the client (regardless of `buffer_size`), in bytes.
             - `from_client_address`: The address of the client that sent the data.
          */
-        void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_client_address));
+        void set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size, Address from_client_address)> callback);
 
         ~ServerUdp();
 
@@ -523,7 +582,7 @@ namespace gnet
         void receive();
         std::thread m_receiving;
 
-        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
+        detail::Synchronized<std::function<void(void* buffer, int buffer_size, int actual_size, Address from_addr)>> m_receive_callback;
     };
 
     /*
@@ -598,7 +657,7 @@ namespace gnet
             - `buffer_size`: The size of the given data in bytes.
             - `actual_size`: The original size of the data that was sent from the server (regardless of `buffer_size`), in bytes.
          */
-        void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size));
+        void set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size)> callback);
 
         /*
             @brief Sets the disconnect callback function.
@@ -608,7 +667,7 @@ namespace gnet
             @param callback The disconnect callback function. The callback function should adhere to the following signature:
             `void callback();`
          */
-        void set_disconnect_callback(void (*callback)());
+        void set_disconnect_callback(std::function<void()> callback);
 
         ~ClientTcp();
 
@@ -621,8 +680,8 @@ namespace gnet
         void receive(); // receive() and callback while true until error (from server or client closure)
         std::thread m_receiving;
 
-        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size)> m_receive_callback;
-        std::atomic<void(*)()> m_disconnect_callback;
+        detail::Synchronized<std::function<void(void* buffer, int buffer_size, int actual_size)>> m_receive_callback;
+        detail::Synchronized<std::function<void()>> m_disconnect_callback;
     };
 
     /*
@@ -689,7 +748,7 @@ namespace gnet
             - `actual_size`: The original size of the data that was sent from the server (regardless of `buffer_size`), in bytes.
             - `from_server_address`: The address of the server that sent the data.
          */
-        void set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_server_address));
+        void set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size, Address from_server_address)> callback);
 
         ~ClientUdp();
 
@@ -702,6 +761,6 @@ namespace gnet
         void receive();
         std::thread m_receiving;
 
-        std::atomic<void(*)(void* buffer, int buffer_size, int actual_size, Address from_addr)> m_receive_callback;
+        detail::Synchronized<std::function<void(void* buffer, int buffer_size, int actual_size, Address from_addr)>> m_receive_callback;
     };
 };

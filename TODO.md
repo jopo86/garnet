@@ -1,5 +1,8 @@
 # TODO before v1.0.0
 
+## Raw Function Pointers -> `std::function`
+- [ ] Switch from function pointers to `std::function,` remove the need for a user pointer.
+
 ## Release checklist
 
 ### Repo.

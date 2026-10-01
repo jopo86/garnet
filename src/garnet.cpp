@@ -4,6 +4,7 @@
 #include <vector>
 #include <cstdint>
 #include <cstring>
+#include <utility>
 
 #ifdef GNET_OS_WINDOWS
     bool g_wsa_initialized = false;
@@ -151,7 +152,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
     {
         g_err = "Failed to resolve hostname: '" + hostname + "'";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return "";
     }
 
@@ -161,13 +162,13 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         freeaddrinfo(res);
         g_err = "Failed to convert address to string";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return "";
     }
 
     std::string ip_addr(ip_str);
     freeaddrinfo(res);
-    if (success != nullptr) *success = true;
+    if (success) *success = true;
     return ip_addr;
 }
 
@@ -197,7 +198,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket creation failed: protocol cannot be null";
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
         else if (m_proto == Protocol::Tcp)
@@ -207,7 +208,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
             {
                 g_err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
                 if (g_print_errors) std::cout << g_err << "\n";
-                if (success != nullptr) *success = false;
+                if (success) *success = false;
                 return;
             }
         }
@@ -218,7 +219,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
             {
                 g_err = "Socket creation failed. WSA error code: " + std::to_string(WSAGetLastError());
                 if (g_print_errors) std::cout << g_err << "\n";
-                if (success != nullptr) *success = false;
+                if (success) *success = false;
                 return;
             }
         }
@@ -231,7 +232,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         }
 
         m_open = true;
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
     }
 
     void gnet::Socket::bind(Address addr, bool* success)
@@ -245,11 +246,11 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket binding failed. WSA error code: " + std::to_string(WSAGetLastError());
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
         return;
     }
 
@@ -259,11 +260,11 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket listening failed. WSA error code: " + std::to_string(WSAGetLastError());
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
         return;
     }
 
@@ -277,7 +278,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket accept failed. WSA error code: " + std::to_string(WSAGetLastError());
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return retval;
         }
 
@@ -285,7 +286,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         retval.m_addr = addr_from_backend(retval.m_backend_addr);
         retval.m_proto = m_proto;
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
 
         return retval;
     }
@@ -302,7 +303,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket connect failed: failed to resolve host";
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
@@ -313,24 +314,24 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket connect failed. WSA error code: " + std::to_string(WSAGetLastError());
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
     }
 
     int gnet::Socket::send(void* data, int size, bool* success)
     {
         int num_bytes = ::send(m_backend_socket, (char*)data, size, 0);
-        if (success != nullptr) *success = num_bytes != SOCKET_ERROR;
+        if (success) *success = num_bytes != SOCKET_ERROR;
         return num_bytes;
     }
 
     int gnet::Socket::receive(void* buffer, int buffer_size, bool* success)
     {
         int num_bytes = ::recv(m_backend_socket, (char*)buffer, buffer_size, 0);
-        if (success != nullptr) *success = num_bytes != SOCKET_ERROR;
+        if (success) *success = num_bytes != SOCKET_ERROR;
         return num_bytes;
     }
 
@@ -346,7 +347,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "send_to failed: failed to resolve host";
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return SOCKET_ERROR;
         }
 
@@ -354,7 +355,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         freeaddrinfo(res);
 
         int num_bytes = ::sendto(m_backend_socket, (char*)data, size, 0, (SOCKADDR*)&backend_to, sizeof(backend_to));
-        if (success != nullptr) *success = num_bytes != SOCKET_ERROR;
+        if (success) *success = num_bytes != SOCKET_ERROR;
         return num_bytes;
     }
 
@@ -363,8 +364,8 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         SOCKADDR_IN backend_from;
         int backend_from_size = sizeof(backend_from);
         int num_bytes = ::recvfrom(m_backend_socket, (char*)buffer, buffer_size, 0, (SOCKADDR*)&backend_from, &backend_from_size);
-        if (success != nullptr) *success = num_bytes != SOCKET_ERROR;
-        if (from != nullptr && num_bytes != SOCKET_ERROR) *from = addr_from_backend(backend_from);
+        if (success) *success = num_bytes != SOCKET_ERROR;
+        if (from && num_bytes != SOCKET_ERROR) *from = addr_from_backend(backend_from);
         return num_bytes;
     }
 
@@ -400,7 +401,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket creation failed: protocol cannot be null";
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
         else if (m_proto == Protocol::Tcp)
@@ -410,7 +411,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
             {
                 g_err = "Socket creation failed. Error: " + std::string(strerror(errno));
                 if (g_print_errors) std::cout << g_err << "\n";
-                if (success != nullptr) *success = false;
+                if (success) *success = false;
                 return;
             }
         }
@@ -421,7 +422,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
             {
                 g_err = "Socket creation failed. Error: " + std::string(strerror(errno));
                 if (g_print_errors) std::cout << g_err << "\n";
-                if (success != nullptr) *success = false;
+                if (success) *success = false;
                 return;
             }
         }
@@ -434,7 +435,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         }
 
         m_open = true;
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
     }
 
     void gnet::Socket::bind(Address addr, bool* success)
@@ -448,11 +449,11 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket binding failed. Error: " + std::string(strerror(errno));
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
         return;
     }
 
@@ -462,11 +463,11 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket listening failed. Error: " + std::string(strerror(errno));
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
         return;
     }
 
@@ -480,7 +481,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket accept failed. Error: " + std::string(strerror(errno));
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return retval;
         }
 
@@ -488,7 +489,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         retval.m_addr = addr_from_backend(retval.m_backend_addr);
         retval.m_proto = m_proto;
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
 
         return retval;
     }
@@ -505,7 +506,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket connect failed: failed to resolve host";
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
@@ -516,24 +517,24 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "Socket connect failed. Error: " + std::string(strerror(errno));
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return;
         }
 
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
     }
 
     int gnet::Socket::send(void* data, int size, bool* success)
     {
         int num_bytes = ::send(m_backend_socket, (char*)data, size, 0);
-        if (success != nullptr) *success = num_bytes != -1;
+        if (success) *success = num_bytes != -1;
         return num_bytes;
     }
 
     int gnet::Socket::receive(void* buffer, int buffer_size, bool* success)
     {
         int num_bytes = ::recv(m_backend_socket, (char*)buffer, buffer_size, 0);
-        if (success != nullptr) *success = num_bytes != -1;
+        if (success) *success = num_bytes != -1;
         return num_bytes;
     }
 
@@ -549,7 +550,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         {
             g_err = "send_to failed: failed to resolve host";
             if (g_print_errors) std::cout << g_err << "\n";
-            if (success != nullptr) *success = false;
+            if (success) *success = false;
             return -1;
         }
 
@@ -557,7 +558,7 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         freeaddrinfo(res);
 
         int num_bytes = ::sendto(m_backend_socket, (char*)data, size, 0, (sockaddr*)&backend_to, sizeof(backend_to));
-        if (success != nullptr) *success = num_bytes != -1;
+        if (success) *success = num_bytes != -1;
         return num_bytes;
     }
 
@@ -566,8 +567,8 @@ std::string gnet::hostname_to_ip(const std::string& hostname, bool* success)
         sockaddr_in backend_from;
         socklen_t backend_from_size = sizeof(backend_from);
         int num_bytes = ::recvfrom(m_backend_socket, (char*)buffer, buffer_size, 0, (sockaddr*)&backend_from, &backend_from_size);
-        if (success != nullptr) *success = num_bytes != -1;
-        if (from != nullptr && num_bytes != -1) *from = addr_from_backend(backend_from);
+        if (success) *success = num_bytes != -1;
+        if (from && num_bytes != -1) *from = addr_from_backend(backend_from);
         return num_bytes;
     }
 
@@ -665,11 +666,8 @@ gnet::ServerTcp::ServerTcp(Address addr, bool* success)
     m_buf_size = 256;
     m_num_clients = 0;
     m_open = false;
-    m_receive_callback = nullptr;
-    m_client_connect_callback = nullptr;
-    m_client_disconnect_callback = nullptr;
 
-    if (success != nullptr) *success = success_a && success_b;
+    if (success) *success = success_a && success_b;
 }
 
 void gnet::ServerTcp::open(int backlog, bool* success)
@@ -678,14 +676,14 @@ void gnet::ServerTcp::open(int backlog, bool* success)
     {
         g_err = "Failed to open ServerTcp: already open";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
     m_open = true;
     bool success_a;
     m_socket.listen(backlog, &success_a);
-    if (success != nullptr) *success = success_a;
+    if (success) *success = success_a;
     if (success_a)
     {
         m_accepting = std::thread(&gnet::ServerTcp::accept, this);
@@ -695,10 +693,11 @@ void gnet::ServerTcp::open(int backlog, bool* success)
 
 void gnet::ServerTcp::send(void* data, int size, Address client_addr, bool* success)
 {
-    std::lock_guard lock(m_client_map_mtx);
-    auto it = m_client_map.find(client_addr);
-    bool sent = it != m_client_map.end() && send_message(it->second, data, size);
-    if (success != nullptr) *success = sent;
+    bool sent = m_clients.with_lock([&](auto& clients) {
+        auto it = clients.find(client_addr);
+        return it != clients.end() && send_message(it->second, data, size);
+    });
+    if (success) *success = sent;
 }
 
 
@@ -708,7 +707,7 @@ void gnet::ServerTcp::close(bool* success)
     {
         g_err = "Failed to close ServerTcp: not open yet or already closed";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
@@ -717,22 +716,19 @@ void gnet::ServerTcp::close(bool* success)
     if (m_accepting.get_id() == std::this_thread::get_id()) m_accepting.detach();
     else m_accepting.join();
 
-    m_client_addrs_mtx.lock();
-    m_client_map_mtx.lock();
-    for (auto& [addr, sock] : m_client_map) sock.close();
-    m_client_addrs.clear();
-    m_client_map.clear();
-    m_client_addrs_mtx.unlock();
-    m_client_map_mtx.unlock();
-    m_receivings_mtx.lock();
-    for (std::thread& receiving : m_receivings)
+    m_clients.with_lock([](auto& clients) {
+        for (auto& [addr, sock] : clients) sock.close();
+        clients.clear();
+    });
+
+    // take the threads out so they're joined without holding the lock
+    auto receivings = m_receivings.with_lock([](auto& threads) { return std::exchange(threads, {}); });
+    for (std::thread& receiving : receivings)
     {
         if (receiving.get_id() == std::this_thread::get_id()) receiving.detach();
         else receiving.join();
     }
-    m_receivings.clear();
-    m_receivings_mtx.unlock();
-    if (success != nullptr) *success = true;
+    if (success) *success = true;
 }
 
 bool gnet::ServerTcp::is_open() const
@@ -752,26 +748,25 @@ int gnet::ServerTcp::get_num_clients() const
 
 gnet::Socket gnet::ServerTcp::get_client_accepted_socket(Address client_addr, bool* success)
 {
-    std::lock_guard lock(m_client_map_mtx);
-    auto it = m_client_map.find(client_addr);
-    if (success != nullptr) *success = it != m_client_map.end();
-    return it != m_client_map.end() ? it->second : Socket();
+    return m_clients.with_lock([&](auto& clients) {
+        auto it = clients.find(client_addr);
+        if (success) *success = it != clients.end();
+        return it != clients.end() ? it->second : Socket();
+    });
 }
 
 const std::list<gnet::Address> gnet::ServerTcp::get_client_addresses()
 {
-    m_client_addrs_mtx.lock();
-    auto ret = m_client_addrs;
-    m_client_addrs_mtx.unlock();
-    return ret;
+    return m_clients.with_lock([](auto& clients) {
+        std::list<Address> addrs;
+        for (auto& [addr, sock] : clients) addrs.push_back(addr);
+        return addrs;
+    });
 }
 
 const std::unordered_map<gnet::Address, gnet::Socket> gnet::ServerTcp::get_client_map()
 {
-    m_client_map_mtx.lock();
-    auto ret = m_client_map;
-    m_client_map_mtx.unlock();
-    return ret;
+    return m_clients.copy();
 }
 
 void gnet::ServerTcp::set_buffer_size(int size)
@@ -779,19 +774,19 @@ void gnet::ServerTcp::set_buffer_size(int size)
     m_buf_size = size;
 }
 
-void gnet::ServerTcp::set_receive_callback(void(*callback)(void* buffer, int buffer_size, int actual_size, Address from_client_addr))
+void gnet::ServerTcp::set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size, Address from_client_addr)> callback)
 {
-    m_receive_callback = callback;
+    m_receive_callback.set(std::move(callback));
 }
 
-void gnet::ServerTcp::set_client_connect_callback(void(*callback)(Address client_addr))
+void gnet::ServerTcp::set_client_connect_callback(std::function<void(Address client_addr)> callback)
 {
-    m_client_connect_callback = callback;
+    m_client_connect_callback.set(std::move(callback));
 }
 
-void gnet::ServerTcp::set_client_disconnect_callback(void(*callback)(Address client_addr))
+void gnet::ServerTcp::set_client_disconnect_callback(std::function<void(Address client_addr)> callback)
 {
-    m_client_disconnect_callback = callback;
+    m_client_disconnect_callback.set(std::move(callback));
 }
 
 gnet::ServerTcp::~ServerTcp()
@@ -813,20 +808,12 @@ void gnet::ServerTcp::accept()
         if (!success) continue;
         else
         {
-            m_client_addrs_mtx.lock();
-            m_client_map_mtx.lock();
-            m_client_addrs.push_back(accepted_socket.get_address());
-            m_client_map.insert({ accepted_socket.get_address(), accepted_socket });
-            m_client_addrs_mtx.unlock();
-            m_client_map_mtx.unlock();
-
-            m_receivings_mtx.lock();
-            m_receivings.push_back(std::thread(&gnet::ServerTcp::receive, this, accepted_socket));
-            m_receivings_mtx.unlock();
+            m_clients.with_lock([&](auto& clients) { clients.insert({ accepted_socket.get_address(), accepted_socket }); });
+            m_receivings.with_lock([&](auto& threads) { threads.push_back(std::thread(&gnet::ServerTcp::receive, this, accepted_socket)); });
             m_num_clients = m_num_clients + 1;
 
-            auto cb = m_client_connect_callback.load();
-            if (cb != nullptr) cb(accepted_socket.get_address());
+            auto client_connect_callback = m_client_connect_callback.copy();
+            if (client_connect_callback) client_connect_callback(accepted_socket.get_address());
         }
     }
 }
@@ -840,25 +827,22 @@ void gnet::ServerTcp::receive(Socket accepted_socket)
         if (num_bytes < 0)
         {
             // client disconnected
-            m_client_addrs_mtx.lock();
-            m_client_map_mtx.lock();
-            m_client_addrs.remove(accepted_socket.get_address());
-            bool owned = m_client_map.erase(accepted_socket.get_address()) > 0;
-            if (owned) accepted_socket.close();   // otherwise close() already closed it
-            m_client_addrs_mtx.unlock();
-            m_client_map_mtx.unlock();
+            m_clients.with_lock([&](auto& clients) {
+                bool owned = clients.erase(accepted_socket.get_address()) > 0;
+                if (owned) accepted_socket.close();   // otherwise close() already closed it
+            });
 
             m_num_clients = m_num_clients - 1;
 
-            auto cb = m_client_disconnect_callback.load();
-            if (cb != nullptr) cb(accepted_socket.get_address());
+            auto client_disconnect_callback = m_client_disconnect_callback.copy();
+            if (client_disconnect_callback) client_disconnect_callback(accepted_socket.get_address());
 
             delete[] buf;
             break;
         }
 
-        auto cb = m_receive_callback.load();
-        if (cb != nullptr) cb(buf, m_buf_size, num_bytes, accepted_socket.get_address());
+        auto receive_callback = m_receive_callback.copy();
+        if (receive_callback) receive_callback(buf, m_buf_size, num_bytes, accepted_socket.get_address());
         else delete[] buf;
     }
 }
@@ -871,9 +855,8 @@ gnet::ServerUdp::ServerUdp(Address addr, bool* success)
     m_socket.bind(addr, &success_b);
     m_buf_size = 256;
     m_open = false;
-    m_receive_callback = nullptr;
 
-    if (success != nullptr) *success = success_a && success_b;
+    if (success) *success = success_a && success_b;
 }
 
 void gnet::ServerUdp::open(bool* success)
@@ -882,13 +865,13 @@ void gnet::ServerUdp::open(bool* success)
     {
         g_err = "Failed to open ServerUdp: already open";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
     m_open = true;
     m_receiving = std::thread(&gnet::ServerUdp::receive, this);
-    if (success != nullptr) *success = true;
+    if (success) *success = true;
 }
 
 void gnet::ServerUdp::send(void* data, int size, Address addr, bool* success)
@@ -902,7 +885,7 @@ void gnet::ServerUdp::close(bool* success)
     {
         g_err = "Failed to close ServerUdp: not open yet or already closed";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
@@ -910,7 +893,7 @@ void gnet::ServerUdp::close(bool* success)
     m_socket.close();
     if (m_receiving.get_id() == std::this_thread::get_id()) m_receiving.detach();
     else m_receiving.join();
-    if (success != nullptr) *success = true;
+    if (success) *success = true;
 }
 
 bool gnet::ServerUdp::is_open() const
@@ -928,9 +911,9 @@ void gnet::ServerUdp::set_buffer_size(int size)
     m_buf_size = size;
 }
 
-void gnet::ServerUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_addr))
+void gnet::ServerUdp::set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size, Address from_addr)> callback)
 {
-    m_receive_callback = callback;
+    m_receive_callback.set(std::move(callback));
 }
 
 gnet::ServerUdp::~ServerUdp()
@@ -952,8 +935,8 @@ void gnet::ServerUdp::receive()
             continue;
         }
 
-        auto cb = m_receive_callback.load();
-        if (cb != nullptr) cb(buf, m_buf_size, num_bytes, from);
+        auto receive_callback = m_receive_callback.copy();
+        if (receive_callback) receive_callback(buf, m_buf_size, num_bytes, from);
         else delete[] buf;
     }
 }
@@ -961,8 +944,6 @@ void gnet::ServerUdp::receive()
 gnet::ClientTcp::ClientTcp(bool* success)
 {
     m_buf_size = 256;
-    m_receive_callback = nullptr;
-    m_disconnect_callback = nullptr;
     m_connected = false;
     m_socket = Socket(Protocol::Tcp, success);
 }
@@ -973,7 +954,7 @@ void gnet::ClientTcp::connect(Address server_addr, bool* success)
     {
         g_err = "Failed to connect ClientTcp: already connected";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
@@ -982,11 +963,11 @@ void gnet::ClientTcp::connect(Address server_addr, bool* success)
     if (success_a)
     {
         m_connected = true;
-        if (success != nullptr) *success = true;
+        if (success) *success = true;
     }
     else
     {
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
@@ -996,7 +977,7 @@ void gnet::ClientTcp::connect(Address server_addr, bool* success)
 void gnet::ClientTcp::send(void* data, int size, bool* success)
 {
     bool sent = send_message(m_socket, data, size);
-    if (success != nullptr) *success = sent;
+    if (success) *success = sent;
 }
 
 void gnet::ClientTcp::disconnect(bool* success)
@@ -1006,7 +987,7 @@ void gnet::ClientTcp::disconnect(bool* success)
     {
         g_err = "Failed to disconnect ClientTcp: not connected yet or already disconnected";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
@@ -1014,7 +995,7 @@ void gnet::ClientTcp::disconnect(bool* success)
     m_socket.close();
     if (m_receiving.get_id() == std::this_thread::get_id()) m_receiving.detach();
     else m_receiving.join();
-    if (success != nullptr) *success = true;
+    if (success) *success = true;
 }
 
 bool gnet::ClientTcp::is_connected() const
@@ -1032,14 +1013,14 @@ void gnet::ClientTcp::set_buffer_size(int buffer_size)
     m_buf_size = buffer_size;
 }
 
-void gnet::ClientTcp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size))
+void gnet::ClientTcp::set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size)> callback)
 {
-    m_receive_callback = callback;
+    m_receive_callback.set(std::move(callback));
 }
 
-void gnet::ClientTcp::set_disconnect_callback(void (*callback)())
+void gnet::ClientTcp::set_disconnect_callback(std::function<void()> callback)
 {
-    m_disconnect_callback = callback;
+    m_disconnect_callback.set(std::move(callback));
 }
 
 gnet::ClientTcp::~ClientTcp()
@@ -1059,13 +1040,13 @@ void gnet::ClientTcp::receive()
             delete[] buf;
             // only report it if the server dropped us, not if disconnect() was called
             bool was_connected = m_connected.exchange(false);
-            auto cb = m_disconnect_callback.load();
-            if (was_connected && cb != nullptr) cb();
+            auto disconnect_callback = m_disconnect_callback.copy();
+            if (was_connected && disconnect_callback) disconnect_callback();
             break;
         }
 
-        auto cb = m_receive_callback.load();
-        if (cb != nullptr) cb(buf, m_buf_size, num_bytes);
+        auto receive_callback = m_receive_callback.copy();
+        if (receive_callback) receive_callback(buf, m_buf_size, num_bytes);
         else delete[] buf;
     }
 }
@@ -1073,7 +1054,6 @@ void gnet::ClientTcp::receive()
 gnet::ClientUdp::ClientUdp(bool* success)
 {
     m_buf_size = 256;
-    m_receive_callback = nullptr;
     m_connected = true;
     m_socket = Socket(Protocol::Udp, success);
 
@@ -1091,7 +1071,7 @@ void gnet::ClientUdp::disconnect(bool* success)
     {
         g_err = "Failed to disconnect ClientUdp: not connected yet or already disconnected";
         if (g_print_errors) std::cout << g_err << "\n";
-        if (success != nullptr) *success = false;
+        if (success) *success = false;
         return;
     }
 
@@ -1099,7 +1079,7 @@ void gnet::ClientUdp::disconnect(bool* success)
     m_socket.close();
     if (m_receiving.get_id() == std::this_thread::get_id()) m_receiving.detach();
     else m_receiving.join();
-    if (success != nullptr) *success = true;
+    if (success) *success = true;
 }
 
 bool gnet::ClientUdp::is_connected() const
@@ -1117,9 +1097,9 @@ void gnet::ClientUdp::set_buffer_size(int size)
     m_buf_size = size;
 }
 
-void gnet::ClientUdp::set_receive_callback(void (*callback)(void* buffer, int buffer_size, int actual_size, Address from_server_address))
+void gnet::ClientUdp::set_receive_callback(std::function<void(void* buffer, int buffer_size, int actual_size, Address from_server_address)> callback)
 {
-    m_receive_callback = callback;
+    m_receive_callback.set(std::move(callback));
 }
 
 gnet::ClientUdp::~ClientUdp()
@@ -1141,8 +1121,8 @@ void gnet::ClientUdp::receive()
             continue;
         }
 
-        auto cb = m_receive_callback.load();
-        if (cb != nullptr) cb(buf, m_buf_size, num_bytes, from);
+        auto receive_callback = m_receive_callback.copy();
+        if (receive_callback) receive_callback(buf, m_buf_size, num_bytes, from);
         else delete[] buf;
     }
 }
