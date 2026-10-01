@@ -19,6 +19,12 @@ add_library(garnet ${SOURCE_FILES})
 target_include_directories(garnet PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_compile_features(garnet PUBLIC cxx_std_20)
 
+if(MSVC)
+    target_compile_options(garnet PRIVATE /W4)
+else()
+    target_compile_options(garnet PRIVATE -Wall -Wextra)
+endif()
+
 if(BUILD_EXAMPLES)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
 endif()

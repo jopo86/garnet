@@ -9,7 +9,7 @@
 - [ ] Remove `TODO.md` or move it out of the repo before tagging, if you don't want it public.
 
 ### CI
-- [ ] Add a GitHub Actions workflow (`.github/workflows/build.yml`) that builds the library and examples on `windows-latest`, `ubuntu-latest`, and `macos-latest`. This would have caught fix #1.
+- [ ] Add a GitHub Actions workflow (`.github/workflows/build.yml`) that builds the library and examples on `windows-latest`, `ubuntu-latest`, and `macos-latest`.
 - [ ] Add the build-status badge to the top of `README.md`.
 - [ ] Turn on warnings (`/W4`, `-Wall -Wextra`) in CI so new warnings are noticed.
 
